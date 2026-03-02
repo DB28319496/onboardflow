@@ -1,0 +1,40 @@
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { Sidebar } from "@/components/dashboard/sidebar";
+import { Header } from "@/components/dashboard/header";
+import { SidebarProvider } from "@/components/dashboard/sidebar-context";
+import { prisma } from "@/lib/prisma";
+
+export default async function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+
+  const member = await prisma.workspaceMember.findFirst({
+    where: { userId: session.user.id },
+    include: { workspace: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (!member) redirect("/signup");
+
+  return (
+    <SidebarProvider>
+      <div className="flex h-screen overflow-hidden bg-background">
+        <Sidebar workspaceName={member.workspace.name} />
+        <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+          <Header
+            workspaceName={member.workspace.name}
+            userName={session.user.name ?? ""}
+            userEmail={session.user.email ?? ""}
+            userImage={session.user.image ?? undefined}
+          />
+          <main className="flex-1 overflow-auto">{children}</main>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+}

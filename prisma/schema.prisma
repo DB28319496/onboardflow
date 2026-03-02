@@ -1,0 +1,302 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ==================== MULTI-TENANCY ====================
+
+model Workspace {
+  id             String   @id @default(cuid())
+  name           String
+  slug           String   @unique
+  logoUrl        String?
+  brandColor     String   @default("#1E3A5F")
+  secondaryColor String   @default("#4F8FD6")
+  apiKey         String   @unique @default(cuid())
+  portalEnabled  Boolean  @default(false)
+  intakeEnabled  Boolean  @default(false)
+  emailFromName  String?
+  emailReplyTo   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  members         WorkspaceMember[]
+  pipelines       Pipeline[]
+  clients         Client[]
+  emailTemplates  EmailTemplate[]
+  automationRules AutomationRule[]
+  invitations     Invitation[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String?
+  image        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  workspaces      WorkspaceMember[]
+  accounts        Account[]
+  sessions        Session[]
+  assignedClients Client[]     @relation("AssignedTo")
+  activities      Activity[]
+  sentInvitations Invitation[] @relation("SentInvitations")
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  role        String   @default("MEMBER")
+  userId      String
+  workspaceId String
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+}
+
+model Invitation {
+  id          String    @id @default(cuid())
+  email       String
+  token       String    @unique @default(cuid())
+  role        String    @default("MEMBER")
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  workspaceId String
+  invitedById String
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy User      @relation("SentInvitations", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([workspaceId])
+}
+
+// ==================== PIPELINES & STAGES ====================
+
+model Pipeline {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  workspaceId String
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  stages    Stage[]
+  clients   Client[]
+}
+
+model Stage {
+  id                String   @id @default(cuid())
+  pipelineId        String
+  order             Int
+  name              String
+  description       String?
+  color             String   @default("#6366F1")
+  daysExpected      Int?
+  checklist         String?
+  documentsRequired String?
+  resourceLinks     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  pipeline        Pipeline         @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  clientsInStage  Client[]         @relation("CurrentStage")
+  completions     StageCompletion[]
+  automationRules AutomationRule[]
+
+  @@index([pipelineId, order])
+}
+
+// ==================== CLIENTS ====================
+
+model Client {
+  id             String   @id @default(cuid())
+  name           String
+  email          String?
+  phone          String?
+  companyName    String?
+  source         String   @default("MANUAL")
+  sourceDetail   String?
+  projectType    String?
+  projectValue   Float?
+  notes          String?
+  metadata       String?
+  status         String   @default("ACTIVE")
+  portalToken    String?  @unique
+  currentStageId String?
+  pipelineId     String?
+  assignedToId   String?
+  workspaceId    String
+  stageEnteredAt DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  workspace        Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  currentStage     Stage?            @relation("CurrentStage", fields: [currentStageId], references: [id], onDelete: SetNull)
+  pipeline         Pipeline?         @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
+  assignedTo       User?             @relation("AssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  stageCompletions StageCompletion[]
+  activities       Activity[]
+  emailLogs        EmailLog[]
+  documents        Document[]
+
+  @@index([workspaceId, status])
+  @@index([currentStageId])
+  @@index([pipelineId])
+}
+
+// ==================== STAGE TRACKING ====================
+
+model StageCompletion {
+  id              String   @id @default(cuid())
+  checklistItemId String?
+  completedBy     String?
+  completedAt     DateTime @default(now())
+  clientId        String
+  stageId         String
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  stage  Stage  @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, stageId, checklistItemId])
+}
+
+// ==================== ACTIVITY TIMELINE ====================
+
+model Activity {
+  id          String   @id @default(cuid())
+  type        String
+  title       String
+  description String?
+  metadata    String?
+  clientId    String
+  userId      String?
+  createdAt   DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, createdAt])
+}
+
+// ==================== DOCUMENTS ====================
+
+model Document {
+  id         String   @id @default(cuid())
+  name       String
+  url        String
+  size       Int
+  mimeType   String
+  uploadedBy String
+  stageId    String?
+  clientId   String
+  createdAt  DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+}
+
+// ==================== EMAIL SYSTEM ====================
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  subject     String
+  body        String
+  type        String   @default("CUSTOM")
+  isActive    Boolean  @default(true)
+  workspaceId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace       Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  automationRules AutomationRule[]
+  emailLogs       EmailLog[]
+}
+
+model EmailLog {
+  id               String   @id @default(cuid())
+  subject          String
+  body             String
+  sentAt           DateTime @default(now())
+  status           String   @default("SENT")
+  clientId         String
+  templateId       String?
+  automationRuleId String?
+
+  client   Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  template EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, sentAt])
+}
+
+// ==================== AUTOMATION ENGINE ====================
+
+model AutomationRule {
+  id            String   @id @default(cuid())
+  name          String
+  isActive      Boolean  @default(true)
+  triggerType   String
+  triggerConfig String
+  actionType    String
+  actionConfig  String
+  stageId       String?
+  templateId    String?
+  workspaceId   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  stage     Stage?         @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  template  EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+}
+
+// ==================== NEXTAUTH MODELS ====================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}

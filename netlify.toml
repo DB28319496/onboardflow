@@ -1,0 +1,10 @@
+[build]
+  command = "pnpm prisma generate && pnpm next build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  PRISMA_CLI_QUERY_ENGINE_TYPE = "library"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
