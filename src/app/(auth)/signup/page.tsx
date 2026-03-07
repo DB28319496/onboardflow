@@ -63,7 +63,7 @@ export default function SignupPage() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <Building2 className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="font-bold text-lg tracking-tight">OnboardFlow</span>
+          <span className="font-bold text-lg tracking-tight">Cadence</span>
         </div>
         <CardTitle className="text-2xl font-bold">Get started free</CardTitle>
         <CardDescription>

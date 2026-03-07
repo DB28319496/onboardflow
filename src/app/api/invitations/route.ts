@@ -80,11 +80,11 @@ export async function POST(req: NextRequest) {
   const inviteUrl = `${process.env.NEXTAUTH_URL ?? "http://localhost:3002"}/invite/${invitation.token}`;
   sendEmail({
     to: email,
-    subject: `You've been invited to join ${workspace.name} on OnboardFlow`,
+    subject: `You've been invited to join ${workspace.name} on Cadence`,
     html: `
       <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
         <h2 style="color: #1E3A5F;">You're invited!</h2>
-        <p>${invitation.invitedBy.name ?? invitation.invitedBy.email} has invited you to join <strong>${workspace.name}</strong> on OnboardFlow as a ${role.charAt(0) + role.slice(1).toLowerCase()}.</p>
+        <p>${invitation.invitedBy.name ?? invitation.invitedBy.email} has invited you to join <strong>${workspace.name}</strong> on Cadence as a ${role.charAt(0) + role.slice(1).toLowerCase()}.</p>
         <p style="margin: 24px 0;">
           <a href="${inviteUrl}" style="background:#1E3A5F;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">
             Accept Invitation

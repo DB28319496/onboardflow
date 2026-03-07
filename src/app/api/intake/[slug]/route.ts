@@ -4,6 +4,16 @@ import { fireAutomations } from "@/lib/automation-engine";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
+
 
 
 const submitSchema = z.object({
@@ -25,10 +35,10 @@ export async function GET(
     select: { id: true, name: true, brandColor: true, intakeEnabled: true },
   });
 
-  if (!workspace) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (!workspace.intakeEnabled) return NextResponse.json({ error: "Intake form is not enabled" }, { status: 403 });
+  if (!workspace) return NextResponse.json({ error: "Not found" }, { status: 404, headers: CORS_HEADERS });
+  if (!workspace.intakeEnabled) return NextResponse.json({ error: "Intake form is not enabled" }, { status: 403, headers: CORS_HEADERS });
 
-  return NextResponse.json({ name: workspace.name, brandColor: workspace.brandColor });
+  return NextResponse.json({ name: workspace.name, brandColor: workspace.brandColor }, { headers: CORS_HEADERS });
 }
 
 export async function POST(
@@ -41,13 +51,13 @@ export async function POST(
     select: { id: true, name: true, brandColor: true, intakeEnabled: true, emailFromName: true, emailReplyTo: true, portalEnabled: true },
   });
 
-  if (!workspace) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (!workspace.intakeEnabled) return NextResponse.json({ error: "Intake form is not enabled" }, { status: 403 });
+  if (!workspace) return NextResponse.json({ error: "Not found" }, { status: 404, headers: CORS_HEADERS });
+  if (!workspace.intakeEnabled) return NextResponse.json({ error: "Intake form is not enabled" }, { status: 403, headers: CORS_HEADERS });
 
   const body = await req.json();
   const parsed = submitSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400, headers: CORS_HEADERS });
   }
 
   const { name, email, phone, companyName, projectType, notes } = parsed.data;
@@ -82,7 +92,7 @@ export async function POST(
     );
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true }, { headers: CORS_HEADERS });
 }
 
 async function classifyIntake(

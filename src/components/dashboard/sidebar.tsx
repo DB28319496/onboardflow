@@ -69,7 +69,7 @@ function SidebarContent({
         })}
       </nav>
       <div className="border-t border-sidebar-border px-4 py-3">
-        <p className="text-xs text-sidebar-foreground/40">OnboardFlow v1.0</p>
+        <p className="text-xs text-sidebar-foreground/40">Cadence v1.0</p>
       </div>
     </div>
   );

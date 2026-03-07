@@ -291,7 +291,7 @@ export default async function PortalPage({ params }: Params) {
       <footer className="text-center py-6">
         <p className="text-xs text-gray-400">
           Powered by{" "}
-          <span className="font-medium text-gray-500">OnboardFlow</span>
+          <span className="font-medium text-gray-500">Cadence</span>
         </p>
       </footer>
     </div>

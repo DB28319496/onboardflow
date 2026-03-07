@@ -69,7 +69,7 @@ export default async function IntakePage({
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          Powered by OnboardFlow
+          Powered by Cadence
         </p>
       </div>
     </div>

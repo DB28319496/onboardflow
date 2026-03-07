@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OnboardFlow — Client Pipeline Management",
+  title: "Cadence — Client Pipeline Management",
   description:
     "Manage your client onboarding pipeline from lead to project kickoff.",
 };

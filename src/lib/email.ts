@@ -42,7 +42,7 @@ export async function sendEmail({
   to,
   subject,
   html,
-  fromName = "OnboardFlow",
+  fromName = "Cadence",
   replyTo,
 }: {
   to: string;
