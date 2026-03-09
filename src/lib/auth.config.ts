@@ -22,6 +22,13 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     authorized({ auth, request }) {
       const { pathname } = request.nextUrl;
+
+      // Redirect authenticated users away from auth pages to dashboard
+      const authPages = ["/login", "/signup", "/forgot-password"];
+      if (auth?.user && authPages.some((r) => pathname.startsWith(r))) {
+        return Response.redirect(new URL("/dashboard", request.url));
+      }
+
       const publicRoutes = [
         "/login",
         "/signup",
