@@ -25,6 +25,8 @@ export const authConfig: NextAuthConfig = {
       const publicRoutes = [
         "/login",
         "/signup",
+        "/forgot-password",
+        "/reset-password",
         "/api/auth",
         "/api/widget",
         "/api/portal",
