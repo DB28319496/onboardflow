@@ -43,7 +43,8 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <Card className="shadow-lg">
+    <div className="flex min-h-screen w-full items-center justify-center bg-muted/30 p-4">
+    <Card className="w-full max-w-md shadow-lg">
       <CardHeader className="space-y-1 pb-4">
         <div className="flex items-center gap-2 mb-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
@@ -100,5 +101,6 @@ export default function ForgotPasswordPage() {
         )}
       </CardContent>
     </Card>
+    </div>
   );
 }
