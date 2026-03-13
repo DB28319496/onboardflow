@@ -29,16 +29,21 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = await params;
-  const workspace = await prisma.workspace.findUnique({
-    where: { slug },
-    select: { id: true, name: true, brandColor: true, intakeEnabled: true },
-  });
+  try {
+    const { slug } = await params;
+    const workspace = await prisma.workspace.findUnique({
+      where: { slug },
+      select: { id: true, name: true, brandColor: true, intakeEnabled: true },
+    });
 
-  if (!workspace) return NextResponse.json({ error: "Not found" }, { status: 404, headers: CORS_HEADERS });
-  if (!workspace.intakeEnabled) return NextResponse.json({ error: "Intake form is not enabled" }, { status: 403, headers: CORS_HEADERS });
+    if (!workspace) return NextResponse.json({ error: "Not found" }, { status: 404, headers: CORS_HEADERS });
+    if (!workspace.intakeEnabled) return NextResponse.json({ error: "Intake form is not enabled" }, { status: 403, headers: CORS_HEADERS });
 
-  return NextResponse.json({ name: workspace.name, brandColor: workspace.brandColor }, { headers: CORS_HEADERS });
+    return NextResponse.json({ name: workspace.name, brandColor: workspace.brandColor }, { headers: CORS_HEADERS });
+  } catch (err) {
+    console.error("[intake GET error]", err);
+    return NextResponse.json({ error: String(err) }, { status: 500, headers: CORS_HEADERS });
+  }
 }
 
 export async function POST(
