@@ -2,7 +2,10 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { hash } from "bcryptjs";
 
-const adapter = new PrismaLibSql({ url: process.env.DATABASE_URL ?? "file:./prisma/dev.db" });
+const adapter = new PrismaLibSql({
+  url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
+  authToken: process.env.DATABASE_AUTH_TOKEN,
+});
 const prisma = new PrismaClient({ adapter });
 
 function daysAgo(days: number): Date {
@@ -69,7 +72,30 @@ const CHECKLIST_BY_STAGE = {
   ]),
 };
 
+async function clearDatabase() {
+  console.log("🗑️  Clearing existing data...");
+  await prisma.emailLog.deleteMany();
+  await prisma.automationRule.deleteMany();
+  await prisma.emailTemplate.deleteMany();
+  await prisma.stageCompletion.deleteMany();
+  await prisma.document.deleteMany();
+  await prisma.activity.deleteMany();
+  await prisma.client.deleteMany();
+  await prisma.stage.deleteMany();
+  await prisma.pipeline.deleteMany();
+  await prisma.invitation.deleteMany();
+  await prisma.workspaceMember.deleteMany();
+  await prisma.passwordResetToken.deleteMany();
+  await prisma.verificationToken.deleteMany();
+  await prisma.session.deleteMany();
+  await prisma.account.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.workspace.deleteMany();
+  console.log("✅ Database cleared");
+}
+
 async function main() {
+  await clearDatabase();
   console.log("🌱 Seeding database...");
 
   // ==================== WORKSPACE & USER ====================
