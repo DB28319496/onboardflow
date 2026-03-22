@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace } from "@/lib/api-helpers";
 import { createClientSchema } from "@/lib/validations";
 import { fireAutomations } from "@/lib/automation-engine";
+import { notifyWorkspaceMembers } from "@/lib/notifications";
 
 export async function GET(req: NextRequest) {
   const { session, userId, error } = await requireAuth();
@@ -99,6 +100,14 @@ export async function POST(req: NextRequest) {
       userId,
     },
   });
+
+  // Notify workspace members (non-blocking)
+  notifyWorkspaceMembers(workspace.id, userId, {
+    type: "CLIENT_CREATED",
+    title: `New client: ${client.name}`,
+    message: client.currentStage?.name ? `Added to ${client.currentStage.name}` : undefined,
+    link: `/clients/${client.id}`,
+  }).catch(console.error);
 
   // Fire automation rules (non-blocking — don't fail the request if automation fails)
   fireAutomations(

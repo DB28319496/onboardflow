@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace } from "@/lib/api-helpers";
 import { fireAutomations } from "@/lib/automation-engine";
+import { createNotification } from "@/lib/notifications";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -48,6 +49,18 @@ export async function POST(req: NextRequest, { params }: Params) {
       userId,
     },
   });
+
+  // Notify assigned user if different from mover (non-blocking)
+  if (client.assignedTo && client.assignedTo.id !== userId) {
+    createNotification({
+      type: "STAGE_CHANGE",
+      title: `${client.name} moved to ${stage.name}`,
+      message: `From "${existing.currentStage?.name ?? "No stage"}"`,
+      link: `/clients/${clientId}`,
+      userId: client.assignedTo.id,
+      workspaceId: workspace.id,
+    }).catch(console.error);
+  }
 
   // Fire STAGE_ENTRY automation rules (non-blocking)
   // Enhancement 1: pass fromStageId for from/to stage matching

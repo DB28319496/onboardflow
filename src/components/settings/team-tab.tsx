@@ -23,8 +23,9 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, UserPlus, Trash2, Mail } from "lucide-react";
+import { Loader2, UserPlus, Trash2, Mail, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
+import { useRole } from "@/components/dashboard/role-context";
 
 type Member = {
   id: string;
@@ -49,6 +50,7 @@ const inviteSchema = z.object({
 type InviteValues = z.infer<typeof inviteSchema>;
 
 export function TeamTab({ currentUserId }: { currentUserId: string }) {
+  const { canManage } = useRole();
   const [members, setMembers] = useState<Member[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,68 +119,77 @@ export function TeamTab({ currentUserId }: { currentUserId: string }) {
   return (
     <div className="space-y-8 max-w-xl">
       {/* Invite Form */}
-      <section className="space-y-4">
-        <div>
-          <p className="text-sm font-semibold">Invite Team Member</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            They'll receive an email with a link to join your workspace.
+      {canManage ? (
+        <section className="space-y-4">
+          <div>
+            <p className="text-sm font-semibold">Invite Team Member</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              They'll receive an email with a link to join your workspace.
+            </p>
+          </div>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(onInvite)}
+              className="flex items-end gap-2"
+            >
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem className="flex-1">
+                    <FormLabel className="text-xs">Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="email"
+                        placeholder="colleague@example.com"
+                        className="h-9"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem className="w-32">
+                    <FormLabel className="text-xs">Role</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="MEMBER">Member</SelectItem>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" size="sm" className="h-9 shrink-0" disabled={inviting}>
+                {inviting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <UserPlus className="h-3.5 w-3.5" />
+                )}
+                <span className="ml-1.5">Invite</span>
+              </Button>
+            </form>
+          </Form>
+        </section>
+      ) : (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <ShieldAlert className="h-4 w-4 text-amber-600 shrink-0" />
+          <p className="text-xs text-amber-800">
+            Only admins and owners can invite team members.
           </p>
         </div>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onInvite)}
-            className="flex items-end gap-2"
-          >
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormLabel className="text-xs">Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="email"
-                      placeholder="colleague@example.com"
-                      className="h-9"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem className="w-32">
-                  <FormLabel className="text-xs">Role</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="MEMBER">Member</SelectItem>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" size="sm" className="h-9 shrink-0" disabled={inviting}>
-              {inviting ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <UserPlus className="h-3.5 w-3.5" />
-              )}
-              <span className="ml-1.5">Invite</span>
-            </Button>
-          </form>
-        </Form>
-      </section>
+      )}
 
       <Separator />
 
@@ -243,17 +254,19 @@ export function TeamTab({ currentUserId }: { currentUserId: string }) {
                   >
                     {inv.role}
                   </Badge>
-                  <button
-                    onClick={() => revokeInvite(inv.id)}
-                    disabled={deletingId === inv.id}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive disabled:opacity-50"
-                  >
-                    {deletingId === inv.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-3.5 w-3.5" />
-                    )}
-                  </button>
+                  {canManage && (
+                    <button
+                      onClick={() => revokeInvite(inv.id)}
+                      disabled={deletingId === inv.id}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive disabled:opacity-50"
+                    >
+                      {deletingId === inv.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

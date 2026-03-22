@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, requireWorkspace } from "@/lib/api-helpers";
+import { requireAuth, requireWorkspace, requireRole } from "@/lib/api-helpers";
 import { z } from "zod";
 
 type Params = { params: Promise<{ ruleId: string }> };
@@ -53,8 +53,11 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   const { ruleId } = await params;
   const { userId, error } = await requireAuth();
   if (error) return error;
-  const { workspace, error: wsError } = await requireWorkspace(userId);
+  const { workspace, member, error: wsError } = await requireWorkspace(userId);
   if (wsError) return wsError;
+
+  const roleError = requireRole(member!, "ADMIN");
+  if (roleError) return roleError;
 
   const existing = await prisma.automationRule.findFirst({
     where: { id: ruleId, workspaceId: workspace.id },

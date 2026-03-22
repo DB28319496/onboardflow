@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { notifyAdmins } from "@/lib/notifications";
 
 const schema = z.object({
   token: z.string().min(1),
@@ -58,6 +59,14 @@ export async function POST(req: NextRequest) {
     where: { id: invitation.id },
     data: { acceptedAt: new Date() },
   });
+
+  // Notify admins that someone joined (non-blocking)
+  notifyAdmins(invitation.workspaceId, {
+    type: "TEAM_INVITE",
+    title: `${name} joined the workspace`,
+    message: invitation.email,
+    link: "/settings",
+  }).catch(console.error);
 
   return NextResponse.json({ success: true, email: invitation.email });
 }

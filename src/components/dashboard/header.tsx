@@ -13,6 +13,8 @@ import {
 import { LogOut, Settings, User, Menu } from "lucide-react";
 import Link from "next/link";
 import { useSidebar } from "./sidebar-context";
+import { NotificationBell } from "./notification-bell";
+import { CommandMenu } from "./command-menu";
 
 interface HeaderProps {
   workspaceName: string;
@@ -45,8 +47,11 @@ export function Header({ workspaceName, userName, userEmail, userImage }: Header
           <Menu className="h-5 w-5" />
         </button>
         <span className="text-sm font-medium text-muted-foreground hidden sm:block">{workspaceName}</span>
+        <CommandMenu />
       </div>
 
+      <div className="flex items-center gap-2">
+      <NotificationBell />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="flex items-center gap-2.5 rounded-full outline-none ring-ring focus-visible:ring-2 transition-opacity hover:opacity-80">
@@ -90,6 +95,7 @@ export function Header({ workspaceName, userName, userEmail, userImage }: Header
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </header>
   );
 }

@@ -2,6 +2,24 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
+export type Role = "OWNER" | "ADMIN" | "MEMBER";
+const ROLE_HIERARCHY: Record<Role, number> = { OWNER: 3, ADMIN: 2, MEMBER: 1 };
+
+export function requireRole(
+  member: { role: string },
+  minimumRole: Role
+): NextResponse | null {
+  const memberLevel = ROLE_HIERARCHY[member.role as Role] ?? 0;
+  const requiredLevel = ROLE_HIERARCHY[minimumRole];
+  if (memberLevel < requiredLevel) {
+    return NextResponse.json(
+      { error: "You don't have permission to perform this action" },
+      { status: 403 }
+    );
+  }
+  return null;
+}
+
 export async function requireAuth() {
   const session = await auth();
   if (!session?.user?.id) {

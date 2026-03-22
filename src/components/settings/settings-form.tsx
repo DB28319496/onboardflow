@@ -16,8 +16,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Save, Copy, Check } from "lucide-react";
+import { Loader2, Save, Copy, Check, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
+import { useRole } from "@/components/dashboard/role-context";
 
 type WorkspaceData = {
   id: string;
@@ -43,6 +44,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export function SettingsForm({ workspace: initial }: { workspace: WorkspaceData }) {
+  const { canManage } = useRole();
   const [saving, setSaving] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedIntake, setCopiedIntake] = useState(false);
@@ -370,13 +372,22 @@ export function SettingsForm({ workspace: initial }: { workspace: WorkspaceData 
         </section>
 
         {/* ── Save ─────────────────────────────────────────────────────────── */}
-        <div className="flex justify-end">
-          <Button type="submit" size="sm" disabled={saving}>
-            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
-            <Save className="h-3.5 w-3.5 mr-1.5" />
-            Save Changes
-          </Button>
-        </div>
+        {canManage ? (
+          <div className="flex justify-end">
+            <Button type="submit" size="sm" disabled={saving}>
+              {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
+              <Save className="h-3.5 w-3.5 mr-1.5" />
+              Save Changes
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+            <ShieldAlert className="h-4 w-4 text-amber-600 shrink-0" />
+            <p className="text-xs text-amber-800">
+              Only admins and owners can modify workspace settings.
+            </p>
+          </div>
+        )}
       </form>
     </Form>
   );

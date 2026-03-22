@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, requireWorkspace } from "@/lib/api-helpers";
+import { requireAuth, requireWorkspace, requireRole } from "@/lib/api-helpers";
 import { updateClientSchema } from "@/lib/validations";
 
 type Params = { params: Promise<{ clientId: string }> };
@@ -62,8 +62,11 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   const { clientId } = await params;
   const { session, userId, error } = await requireAuth();
   if (error) return error;
-  const { workspace, error: wsError } = await requireWorkspace(userId);
+  const { workspace, member, error: wsError } = await requireWorkspace(userId);
   if (wsError) return wsError;
+
+  const roleError = requireRole(member!, "ADMIN");
+  if (roleError) return roleError;
 
   const existing = await prisma.client.findFirst({
     where: { id: clientId, workspaceId: workspace.id },

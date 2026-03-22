@@ -30,6 +30,7 @@ model Workspace {
   automationRules AutomationRule[]
   invitations     Invitation[]
   emailLogs       EmailLog[]
+  notifications   Notification[]
 }
 
 model User {
@@ -47,6 +48,7 @@ model User {
   assignedClients Client[]     @relation("AssignedTo")
   activities      Activity[]
   sentInvitations Invitation[] @relation("SentInvitations")
+  notifications   Notification[]
 }
 
 model WorkspaceMember {
@@ -267,6 +269,26 @@ model AutomationRule {
   stage     Stage?         @relation(fields: [stageId], references: [id], onDelete: SetNull)
   template  EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   emailLogs EmailLog[]
+}
+
+// ==================== NOTIFICATIONS ====================
+
+model Notification {
+  id          String   @id @default(cuid())
+  type        String
+  title       String
+  message     String?
+  link        String?
+  read        Boolean  @default(false)
+  userId      String
+  workspaceId String
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+  @@index([workspaceId])
 }
 
 // ==================== NEXTAUTH MODELS ====================

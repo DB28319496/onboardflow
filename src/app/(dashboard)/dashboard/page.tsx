@@ -5,6 +5,7 @@ import { formatCurrency } from "@/lib/utils";
 import { Users, DollarSign, TrendingUp, Plus } from "lucide-react";
 import { KanbanBoard, KanbanClient, KanbanPipeline } from "@/components/kanban/kanban-board";
 import { PipelineSwitcher } from "@/components/kanban/pipeline-switcher";
+import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -69,7 +70,18 @@ async function getDashboardData(workspaceId: string, pipelineId?: string) {
     })),
   };
 
-  return { pipeline: kanbanPipeline, allPipelines, clients, totalValue, totalActive: clients.length };
+  // Fetch recent workspace-wide activities
+  const recentActivities = await prisma.activity.findMany({
+    where: { client: { workspaceId } },
+    include: {
+      user: { select: { name: true, image: true } },
+      client: { select: { id: true, name: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 15,
+  });
+
+  return { pipeline: kanbanPipeline, allPipelines, clients, totalValue, totalActive: clients.length, recentActivities };
 }
 
 export default async function DashboardPage({
@@ -88,7 +100,7 @@ export default async function DashboardPage({
 
   const { pipeline: pipelineParam } = await searchParams;
 
-  const { pipeline, allPipelines, clients, totalValue, totalActive } =
+  const { pipeline, allPipelines, clients, totalValue, totalActive, recentActivities } =
     await getDashboardData(member.workspaceId, pipelineParam);
 
   const avgValue = totalActive > 0 ? totalValue / totalActive : 0;
@@ -164,7 +176,19 @@ export default async function DashboardPage({
       </div>
 
       <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto p-6">
-        <KanbanBoard pipeline={pipeline} initialClients={clients} />
+        <div className="flex gap-6 h-full">
+          <div className="flex-1 min-w-0">
+            <KanbanBoard pipeline={pipeline} initialClients={clients} />
+          </div>
+          <div className="hidden xl:block w-72 shrink-0">
+            <div className="sticky top-0">
+              <p className="text-sm font-semibold mb-3">Recent Activity</p>
+              <div className="rounded-xl border border-border/60 bg-card">
+                <ActivityFeed activities={recentActivities} />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
