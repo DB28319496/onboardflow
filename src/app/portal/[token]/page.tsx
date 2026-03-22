@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Check, Clock, ArrowRight, Mail, FileText, ImageIcon, File } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/utils";
+import { PortalMessages } from "@/components/portal/portal-messages";
 
 type Params = { params: Promise<{ token: string }> };
 
@@ -261,6 +262,13 @@ export default async function PortalPage({ params }: Params) {
             </div>
           </div>
         )}
+
+        {/* Messages */}
+        <PortalMessages
+          token={token}
+          clientName={client.name}
+          brandColor={workspace.brandColor}
+        />
 
         {/* Activity timeline */}
         {client.activities.length > 0 && (

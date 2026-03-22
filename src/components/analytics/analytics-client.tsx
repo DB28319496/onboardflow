@@ -44,6 +44,17 @@ type StageStat = {
 
 type MonthlyIntake = { month: string; count: number };
 type StatusBreakdown = { status: string; label: string; count: number; value: number };
+type FunnelEntry = { name: string; fullName: string; count: number; color: string };
+type TeamMetric = {
+  name: string;
+  role: string;
+  active: number;
+  completed: number;
+  lost: number;
+  total: number;
+  value: number;
+  winRate: number | null;
+};
 
 // ── Status colors ────────────────────────────────────────────────────────────
 
@@ -130,11 +141,15 @@ export function AnalyticsClient({
   stageStats,
   monthlyIntake,
   statusBreakdown,
+  funnelData,
+  teamMetrics,
 }: {
   summary: Summary;
   stageStats: StageStat[];
   monthlyIntake: MonthlyIntake[];
   statusBreakdown: StatusBreakdown[];
+  funnelData: FunnelEntry[];
+  teamMetrics: TeamMetric[];
 }) {
   const overdueStages = stageStats.filter((s) => s.overdueCount > 0);
   const activeStageStats = stageStats.filter((s) => s.clientCount > 0);
@@ -380,6 +395,90 @@ export function AnalyticsClient({
             )}
           </div>
         </div>
+
+        {/* ── Conversion Funnel ──────────────────────────────────────────── */}
+        {funnelData.length > 1 && (
+          <div className="rounded-xl border border-border/60 bg-background p-4">
+            <p className="text-sm font-semibold mb-4">Conversion Funnel</p>
+            <div className="space-y-2">
+              {funnelData.map((entry, i) => {
+                const maxCount = funnelData[0].count;
+                const pct = maxCount > 0 ? (entry.count / maxCount) * 100 : 0;
+                const conversionFromPrev = i > 0 && funnelData[i - 1].count > 0
+                  ? Math.round((entry.count / funnelData[i - 1].count) * 100)
+                  : null;
+                return (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground w-28 truncate shrink-0 text-right">
+                      {entry.fullName}
+                    </span>
+                    <div className="flex-1 h-7 bg-muted/30 rounded-md overflow-hidden relative">
+                      <div
+                        className="h-full rounded-md transition-all flex items-center px-2"
+                        style={{ width: `${Math.max(pct, 8)}%`, background: entry.color }}
+                      >
+                        <span className="text-[11px] font-bold text-white">
+                          {entry.count}
+                        </span>
+                      </div>
+                    </div>
+                    {conversionFromPrev !== null && (
+                      <span className="text-[11px] text-muted-foreground w-12 shrink-0">
+                        {conversionFromPrev}%
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-muted-foreground/60 mt-3">
+              Percentages show conversion from previous stage.
+            </p>
+          </div>
+        )}
+
+        {/* ── Team Performance ─────────────────────────────────────────────── */}
+        {teamMetrics.length > 0 && (
+          <div className="rounded-xl border border-border/60 bg-background">
+            <div className="px-4 pt-4 pb-3 border-b border-border/50 flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm font-semibold">Team Performance</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/50">
+                    <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">Member</th>
+                    <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground">Active</th>
+                    <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground">Completed</th>
+                    <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground">Lost</th>
+                    <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground">Win Rate</th>
+                    <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground">Value</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {teamMetrics.map((m) => (
+                    <tr key={m.name}>
+                      <td className="px-4 py-2.5">
+                        <p className="font-medium">{m.name}</p>
+                        <p className="text-[11px] text-muted-foreground capitalize">{m.role.toLowerCase()}</p>
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">{m.active}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-emerald-600">{m.completed}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-red-600">{m.lost}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">
+                        {m.winRate != null ? `${m.winRate}%` : "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
+                        {m.value > 0 ? formatCurrency(m.value) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* ── Stage Bottlenecks ───────────────────────────────────────────── */}
         {overdueStages.length > 0 && (

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { SettingsForm } from "@/components/settings/settings-form";
 import { TeamTab } from "@/components/settings/team-tab";
+import { AuditLogTab } from "@/components/settings/audit-log-tab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default async function SettingsPage() {
@@ -44,12 +45,16 @@ export default async function SettingsPage() {
           <TabsList className="mb-6">
             <TabsTrigger value="workspace">Workspace</TabsTrigger>
             <TabsTrigger value="team">Team</TabsTrigger>
+            <TabsTrigger value="audit">Audit Log</TabsTrigger>
           </TabsList>
           <TabsContent value="workspace">
             <SettingsForm workspace={workspace} />
           </TabsContent>
           <TabsContent value="team">
             <TeamTab currentUserId={session.user.id} />
+          </TabsContent>
+          <TabsContent value="audit">
+            <AuditLogTab />
           </TabsContent>
         </Tabs>
       </div>

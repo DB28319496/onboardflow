@@ -15,7 +15,7 @@ export default async function AnalyticsPage() {
 
   const wid = member.workspaceId;
 
-  const [clients, stages, emailCount] = await Promise.all([
+  const [clients, stages, emailCount, teamMembers] = await Promise.all([
     prisma.client.findMany({
       where: { workspaceId: wid },
       select: {
@@ -25,6 +25,7 @@ export default async function AnalyticsPage() {
         currentStageId: true,
         stageEnteredAt: true,
         createdAt: true,
+        assignedToId: true,
       },
     }),
     prisma.stage.findMany({
@@ -40,6 +41,10 @@ export default async function AnalyticsPage() {
           { client: { workspaceId: wid } },
         ],
       },
+    }),
+    prisma.workspaceMember.findMany({
+      where: { workspaceId: wid },
+      include: { user: { select: { id: true, name: true, email: true } } },
     }),
   ]);
 
@@ -116,6 +121,43 @@ export default async function AnalyticsPage() {
     value: data.value,
   }));
 
+  // Conversion funnel: clients per stage in pipeline order
+  const funnelData = stages
+    .filter((s) => {
+      const total = clients.filter((c) => c.currentStageId === s.id).length;
+      return total > 0;
+    })
+    .map((s) => ({
+      name: s.name.length > 16 ? s.name.slice(0, 15) + "…" : s.name,
+      fullName: s.name,
+      count: clients.filter((c) => c.currentStageId === s.id).length,
+      color: s.color,
+    }));
+
+  // Team metrics
+  const teamMetrics = teamMembers.map((m) => {
+    const assigned = clients.filter((c) => c.assignedToId === m.user.id);
+    const activeCount = assigned.filter((c) => c.status === "ACTIVE").length;
+    const completedCount = assigned.filter((c) => c.status === "COMPLETED").length;
+    const lostCount = assigned.filter((c) => c.status === "LOST").length;
+    const totalValue = assigned
+      .filter((c) => c.status === "ACTIVE")
+      .reduce((sum, c) => sum + (c.projectValue ?? 0), 0);
+    return {
+      name: m.user.name ?? m.user.email,
+      role: m.role,
+      active: activeCount,
+      completed: completedCount,
+      lost: lostCount,
+      total: assigned.length,
+      value: totalValue,
+      winRate: completedCount + lostCount > 0
+        ? Math.round((completedCount / (completedCount + lostCount)) * 100)
+        : null,
+    };
+  }).filter((m) => m.total > 0)
+    .sort((a, b) => b.total - a.total);
+
   return (
     <AnalyticsClient
       summary={{
@@ -129,6 +171,8 @@ export default async function AnalyticsPage() {
       stageStats={stageStats}
       monthlyIntake={monthlyIntake}
       statusBreakdown={statusBreakdown}
+      funnelData={funnelData}
+      teamMetrics={teamMetrics}
     />
   );
 }

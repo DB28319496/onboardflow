@@ -31,6 +31,8 @@ model Workspace {
   invitations     Invitation[]
   emailLogs       EmailLog[]
   notifications   Notification[]
+  auditLogs       AuditLog[]
+  portalMessages  PortalMessage[]
 }
 
 model User {
@@ -49,6 +51,8 @@ model User {
   activities      Activity[]
   sentInvitations Invitation[] @relation("SentInvitations")
   notifications   Notification[]
+  auditLogs       AuditLog[]
+  portalMessages  PortalMessage[] @relation("PortalMessages")
 }
 
 model WorkspaceMember {
@@ -153,6 +157,7 @@ model Client {
   activities       Activity[]
   emailLogs        EmailLog[]
   documents        Document[]
+  portalMessages   PortalMessage[]
 
   @@index([workspaceId, status])
   @@index([currentStageId])
@@ -269,6 +274,42 @@ model AutomationRule {
   stage     Stage?         @relation(fields: [stageId], references: [id], onDelete: SetNull)
   template  EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   emailLogs EmailLog[]
+}
+
+// ==================== AUDIT LOG ====================
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  action      String   // SETTINGS_UPDATED, CLIENT_DELETED, PIPELINE_DELETED, TEMPLATE_DELETED, AUTOMATION_DELETED, MEMBER_INVITED, MEMBER_JOINED
+  description String
+  metadata    String?  // JSON with old/new values
+  userId      String
+  workspaceId String
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+}
+
+// ==================== PORTAL MESSAGES ====================
+
+model PortalMessage {
+  id          String   @id @default(cuid())
+  content     String
+  senderType  String   // CLIENT or TEAM
+  senderName  String
+  clientId    String
+  workspaceId String
+  userId      String?  // null for client messages
+  createdAt   DateTime @default(now())
+
+  client    Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User?     @relation("PortalMessages", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, createdAt])
 }
 
 // ==================== NOTIFICATIONS ====================

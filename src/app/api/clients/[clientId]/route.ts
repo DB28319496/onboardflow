@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace, requireRole } from "@/lib/api-helpers";
 import { updateClientSchema } from "@/lib/validations";
+import { logAudit } from "@/lib/audit";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -74,5 +75,13 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await prisma.client.delete({ where: { id: clientId } });
+
+  logAudit({
+    action: "CLIENT_DELETED",
+    description: `Deleted client "${existing.name}"`,
+    userId,
+    workspaceId: workspace.id,
+  }).catch(console.error);
+
   return NextResponse.json({ ok: true });
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace, requireRole } from "@/lib/api-helpers";
 import { updatePipelineSchema } from "@/lib/validations";
+import { logAudit } from "@/lib/audit";
 
 type Params = { params: Promise<{ pipelineId: string }> };
 
@@ -77,5 +78,13 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await prisma.pipeline.delete({ where: { id: pipelineId } });
+
+  logAudit({
+    action: "PIPELINE_DELETED",
+    description: `Deleted pipeline "${existing.name}"`,
+    userId,
+    workspaceId: workspace.id,
+  }).catch(console.error);
+
   return NextResponse.json({ ok: true });
 }

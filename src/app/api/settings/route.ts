@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace, requireRole } from "@/lib/api-helpers";
 import { z } from "zod";
+import { logAudit } from "@/lib/audit";
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -71,6 +72,14 @@ export async function PATCH(req: NextRequest) {
       apiKey: true,
     },
   });
+
+  logAudit({
+    action: "SETTINGS_UPDATED",
+    description: `Updated workspace settings`,
+    metadata: parsed.data as Record<string, unknown>,
+    userId,
+    workspaceId: workspace.id,
+  }).catch(console.error);
 
   return NextResponse.json(updated);
 }

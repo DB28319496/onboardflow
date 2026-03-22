@@ -10,6 +10,8 @@ import { ClientActivity } from "@/components/clients/client-activity";
 import { ClientChecklist } from "@/components/clients/client-checklist";
 import { ClientDocuments } from "@/components/clients/client-documents";
 import { ClientAiSummary } from "@/components/clients/client-ai-summary";
+import { ClientSendEmail } from "@/components/clients/client-send-email";
+import { ClientMessages } from "@/components/clients/client-messages";
 
 const STATUS_STYLES: Record<string, string> = {
   ACTIVE: "bg-blue-100 text-blue-700",
@@ -192,6 +194,9 @@ export default async function ClientDetailPage({
 
           {/* Right: Checklist + Activity */}
           <div className="overflow-auto p-6 space-y-6">
+            {/* Send Email */}
+            <ClientSendEmail clientId={client.id} clientEmail={client.email} />
+
             {/* AI Summary */}
             <ClientAiSummary clientId={client.id} />
 
@@ -213,6 +218,10 @@ export default async function ClientDetailPage({
 
             <div className="border-t border-border/50 pt-6">
               <ClientDocuments clientId={client.id} />
+            </div>
+
+            <div className="border-t border-border/50 pt-6">
+              <ClientMessages clientId={client.id} />
             </div>
 
             <div className="border-t border-border/50 pt-6">
