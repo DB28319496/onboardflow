@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { SettingsForm } from "@/components/settings/settings-form";
 import { TeamTab } from "@/components/settings/team-tab";
 import { AuditLogTab } from "@/components/settings/audit-log-tab";
+import { WebhooksTab } from "@/components/settings/webhooks-tab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default async function SettingsPage() {
@@ -45,6 +46,7 @@ export default async function SettingsPage() {
           <TabsList className="mb-6">
             <TabsTrigger value="workspace">Workspace</TabsTrigger>
             <TabsTrigger value="team">Team</TabsTrigger>
+            <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
             <TabsTrigger value="audit">Audit Log</TabsTrigger>
           </TabsList>
           <TabsContent value="workspace">
@@ -52,6 +54,9 @@ export default async function SettingsPage() {
           </TabsContent>
           <TabsContent value="team">
             <TeamTab currentUserId={session.user.id} />
+          </TabsContent>
+          <TabsContent value="webhooks">
+            <WebhooksTab />
           </TabsContent>
           <TabsContent value="audit">
             <AuditLogTab />

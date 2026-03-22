@@ -232,7 +232,7 @@ function KanbanColumn({
   }).length;
 
   return (
-    <div className="flex flex-col w-[272px] shrink-0">
+    <div className="flex flex-col w-[240px] sm:w-[272px] shrink-0">
       {/* Column header */}
       <div className="flex items-center gap-2 mb-2 px-1">
         <div

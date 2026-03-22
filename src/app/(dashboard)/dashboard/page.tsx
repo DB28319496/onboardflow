@@ -148,7 +148,7 @@ export default async function DashboardPage({
           </Link>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <div className="bg-muted/40 rounded-xl p-3">
             <div className="flex items-center gap-2 mb-1">
               <Users className="h-3.5 w-3.5 text-muted-foreground" />

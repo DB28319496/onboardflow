@@ -33,6 +33,7 @@ model Workspace {
   notifications   Notification[]
   auditLogs       AuditLog[]
   portalMessages  PortalMessage[]
+  webhooks        Webhook[]
 }
 
 model User {
@@ -274,6 +275,23 @@ model AutomationRule {
   stage     Stage?         @relation(fields: [stageId], references: [id], onDelete: SetNull)
   template  EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   emailLogs EmailLog[]
+}
+
+// ==================== WEBHOOKS ====================
+
+model Webhook {
+  id          String   @id @default(cuid())
+  url         String
+  events      String   // JSON array of event types: ["CLIENT_CREATED", "STAGE_CHANGE", "CLIENT_COMPLETED"]
+  secret      String   @default(cuid())
+  isActive    Boolean  @default(true)
+  workspaceId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
 }
 
 // ==================== AUDIT LOG ====================

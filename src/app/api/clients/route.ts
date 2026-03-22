@@ -4,6 +4,7 @@ import { requireAuth, requireWorkspace } from "@/lib/api-helpers";
 import { createClientSchema } from "@/lib/validations";
 import { fireAutomations } from "@/lib/automation-engine";
 import { notifyWorkspaceMembers } from "@/lib/notifications";
+import { fireWebhooks } from "@/lib/webhooks";
 
 export async function GET(req: NextRequest) {
   const { session, userId, error } = await requireAuth();
@@ -100,6 +101,14 @@ export async function POST(req: NextRequest) {
       userId,
     },
   });
+
+  // Fire webhooks (non-blocking)
+  fireWebhooks(workspace.id, "CLIENT_CREATED", {
+    clientId: client.id,
+    name: client.name,
+    email: client.email,
+    stage: client.currentStage?.name,
+  }).catch(console.error);
 
   // Notify workspace members (non-blocking)
   notifyWorkspaceMembers(workspace.id, userId, {

@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import { Check, Clock, ArrowRight, Mail, FileText, ImageIcon, File } from "lucide-react";
+import { Check, Clock, ArrowRight, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/utils";
 import { PortalMessages } from "@/components/portal/portal-messages";
+import { PortalDocuments } from "@/components/portal/portal-documents";
 
 type Params = { params: Promise<{ token: string }> };
 
@@ -232,36 +233,19 @@ export default async function PortalPage({ params }: Params) {
           </div>
         )}
 
-        {/* Documents */}
-        {client.documents.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-            <p className="text-sm font-semibold text-gray-700 mb-4">Documents</p>
-            <div className="space-y-1">
-              {client.documents.map((doc) => {
-                const isImage = doc.mimeType.startsWith("image/");
-                const isPdf = doc.mimeType === "application/pdf" || doc.mimeType.includes("word") || doc.mimeType.includes("sheet");
-                return (
-                  <a
-                    key={doc.id}
-                    href={doc.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    {isImage ? (
-                      <ImageIcon className="h-4 w-4 text-purple-500 shrink-0" />
-                    ) : isPdf ? (
-                      <FileText className="h-4 w-4 text-blue-500 shrink-0" />
-                    ) : (
-                      <File className="h-4 w-4 text-gray-400 shrink-0" />
-                    )}
-                    <span className="text-sm text-gray-700 truncate">{doc.name}</span>
-                  </a>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* Documents (interactive — clients can upload) */}
+        <PortalDocuments
+          documents={client.documents.map((d) => ({
+            id: d.id,
+            name: d.name,
+            url: d.url,
+            size: d.size,
+            mimeType: d.mimeType,
+            createdAt: d.createdAt.toISOString(),
+          }))}
+          token={token}
+          brandColor={workspace.brandColor}
+        />
 
         {/* Messages */}
         <PortalMessages

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace } from "@/lib/api-helpers";
 import { fireAutomations } from "@/lib/automation-engine";
 import { createNotification } from "@/lib/notifications";
+import { fireWebhooks } from "@/lib/webhooks";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -49,6 +50,14 @@ export async function POST(req: NextRequest, { params }: Params) {
       userId,
     },
   });
+
+  // Fire webhooks (non-blocking)
+  fireWebhooks(workspace.id, "STAGE_CHANGE", {
+    clientId,
+    clientName: client.name,
+    fromStage: existing.currentStage?.name,
+    toStage: stage.name,
+  }).catch(console.error);
 
   // Notify assigned user if different from mover (non-blocking)
   if (client.assignedTo && client.assignedTo.id !== userId) {

@@ -12,6 +12,7 @@ import {
   Settings,
   Building2,
   X,
+  CalendarClock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -23,6 +24,7 @@ const navItems = [
   { label: "Pipelines", href: "/pipelines", icon: GitBranch },
   { label: "Automations", href: "/automations", icon: Zap },
   { label: "Email Templates", href: "/email-templates", icon: Mail },
+  { label: "Timeline", href: "/timeline", icon: CalendarClock },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
   { label: "Settings", href: "/settings", icon: Settings },
 ];

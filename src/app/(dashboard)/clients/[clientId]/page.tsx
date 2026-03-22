@@ -119,7 +119,7 @@ export default async function ClientDetailPage({
           All Clients
         </Link>
 
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight truncate">{client.name}</h1>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
