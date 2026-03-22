@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/utils";
 import { PortalMessages } from "@/components/portal/portal-messages";
 import { PortalDocuments } from "@/components/portal/portal-documents";
+import { PortalChecklist } from "@/components/portal/portal-checklist";
 
 type Params = { params: Promise<{ token: string }> };
 
@@ -179,58 +180,15 @@ export default async function PortalPage({ params }: Params) {
           </div>
         )}
 
-        {/* Checklist */}
-        {checklistItems.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm font-semibold text-gray-700">
-                {client.currentStage?.name} — Checklist
-              </p>
-              <span className="text-xs text-gray-500">
-                {doneCount}/{checklistItems.length} complete
-              </span>
-            </div>
-
-            {/* Progress bar */}
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-4">
-              <div
-                className={cn(
-                  "h-full rounded-full transition-all",
-                  doneCount === checklistItems.length ? "bg-emerald-500" : "bg-blue-500"
-                )}
-                style={{
-                  width: `${Math.round((doneCount / checklistItems.length) * 100)}%`,
-                }}
-              />
-            </div>
-
-            <div className="space-y-2">
-              {checklistItems.map((item) => (
-                <div key={item.id} className="flex items-start gap-2.5">
-                  <div
-                    className={cn(
-                      "mt-0.5 h-4 w-4 rounded border-2 flex items-center justify-center shrink-0",
-                      item.completed
-                        ? "bg-emerald-500 border-emerald-500"
-                        : "border-gray-300"
-                    )}
-                  >
-                    {item.completed && (
-                      <Check className="h-2.5 w-2.5 text-white stroke-[3]" />
-                    )}
-                  </div>
-                  <span
-                    className={cn(
-                      "text-sm leading-snug",
-                      item.completed ? "text-gray-400 line-through" : "text-gray-700"
-                    )}
-                  >
-                    {item.text}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* Checklist (interactive — clients can check items) */}
+        {checklistItems.length > 0 && client.currentStageId && (
+          <PortalChecklist
+            items={checklistItems}
+            stageName={client.currentStage?.name ?? ""}
+            stageId={client.currentStageId}
+            token={token}
+            brandColor={workspace.brandColor}
+          />
         )}
 
         {/* Documents (interactive — clients can upload) */}

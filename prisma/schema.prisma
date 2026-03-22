@@ -34,6 +34,8 @@ model Workspace {
   auditLogs       AuditLog[]
   portalMessages  PortalMessage[]
   webhooks        Webhook[]
+  customFields    CustomField[]
+  tags            Tag[]
 }
 
 model User {
@@ -159,6 +161,8 @@ model Client {
   emailLogs        EmailLog[]
   documents        Document[]
   portalMessages   PortalMessage[]
+  customFieldValues CustomFieldValue[]
+  tags             ClientTag[]
 
   @@index([workspaceId, status])
   @@index([currentStageId])
@@ -275,6 +279,63 @@ model AutomationRule {
   stage     Stage?         @relation(fields: [stageId], references: [id], onDelete: SetNull)
   template  EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   emailLogs EmailLog[]
+}
+
+// ==================== CUSTOM FIELDS ====================
+
+model CustomField {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // TEXT, NUMBER, DATE, SELECT
+  options     String?  // JSON array for SELECT type
+  required    Boolean  @default(false)
+  order       Int      @default(0)
+  workspaceId String
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  values    CustomFieldValue[]
+
+  @@index([workspaceId, order])
+}
+
+model CustomFieldValue {
+  id            String @id @default(cuid())
+  value         String
+  customFieldId String
+  clientId      String
+
+  customField CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+  client      Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([customFieldId, clientId])
+}
+
+// ==================== TAGS ====================
+
+model Tag {
+  id          String   @id @default(cuid())
+  name        String
+  color       String   @default("#6366F1")
+  workspaceId String
+  createdAt   DateTime @default(now())
+
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  clients   ClientTag[]
+
+  @@unique([name, workspaceId])
+  @@index([workspaceId])
+}
+
+model ClientTag {
+  id       String @id @default(cuid())
+  clientId String
+  tagId    String
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, tagId])
 }
 
 // ==================== WEBHOOKS ====================

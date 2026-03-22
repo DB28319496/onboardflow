@@ -63,6 +63,7 @@ export const createClientSchema = z.object({
   pipelineId: z.string().optional(),
   stageId: z.string().optional(),
   assignedToId: z.string().optional(),
+  skipDuplicateCheck: z.boolean().optional(),
 });
 
 export const updateClientSchema = createClientSchema.partial();

@@ -6,6 +6,7 @@ import { Users, DollarSign, TrendingUp, Plus } from "lucide-react";
 import { KanbanBoard, KanbanClient, KanbanPipeline } from "@/components/kanban/kanban-board";
 import { PipelineSwitcher } from "@/components/kanban/pipeline-switcher";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
+import { OnboardingWizard } from "@/components/dashboard/onboarding-wizard";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -106,23 +107,7 @@ export default async function DashboardPage({
   const avgValue = totalActive > 0 ? totalValue / totalActive : 0;
 
   if (!pipeline) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-12">
-        <div className="max-w-sm">
-          <h2 className="text-xl font-bold mb-2">No Pipeline Yet</h2>
-          <p className="text-muted-foreground mb-6">
-            Create your first pipeline to start tracking clients.
-          </p>
-          <Link
-            href="/pipelines"
-            className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Create Pipeline
-          </Link>
-        </div>
-      </div>
-    );
+    return <OnboardingWizard />;
   }
 
   return (

@@ -32,9 +32,21 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Stage not found" }, { status: 404 });
   }
 
+  // Auto-complete: check if this is the final stage
+  const allStages = await prisma.stage.findMany({
+    where: { pipelineId: stage.pipelineId },
+    orderBy: { order: "asc" },
+    select: { id: true, order: true },
+  });
+  const isFinalStage = allStages.length > 0 && allStages[allStages.length - 1].id === stageId;
+
   const client = await prisma.client.update({
     where: { id: clientId },
-    data: { currentStageId: stageId, stageEnteredAt: new Date() },
+    data: {
+      currentStageId: stageId,
+      stageEnteredAt: new Date(),
+      ...(isFinalStage ? { status: "COMPLETED" } : {}),
+    },
     include: {
       currentStage: { select: { id: true, name: true, color: true, daysExpected: true } },
       assignedTo: { select: { id: true, name: true, image: true } },
@@ -50,6 +62,24 @@ export async function POST(req: NextRequest, { params }: Params) {
       userId,
     },
   });
+
+  // Log auto-completion if final stage
+  if (isFinalStage) {
+    prisma.activity.create({
+      data: {
+        type: "STATUS_CHANGE",
+        title: `Automatically marked as Completed (reached final stage)`,
+        clientId,
+        userId,
+      },
+    }).catch(console.error);
+
+    fireWebhooks(workspace.id, "CLIENT_COMPLETED", {
+      clientId,
+      clientName: client.name,
+      stage: stage.name,
+    }).catch(console.error);
+  }
 
   // Fire webhooks (non-blocking)
   fireWebhooks(workspace.id, "STAGE_CHANGE", {

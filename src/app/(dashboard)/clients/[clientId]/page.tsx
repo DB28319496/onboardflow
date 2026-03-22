@@ -12,6 +12,8 @@ import { ClientDocuments } from "@/components/clients/client-documents";
 import { ClientAiSummary } from "@/components/clients/client-ai-summary";
 import { ClientSendEmail } from "@/components/clients/client-send-email";
 import { ClientMessages } from "@/components/clients/client-messages";
+import { ClientCustomFields } from "@/components/clients/client-custom-fields";
+import { ClientTags } from "@/components/clients/client-tags";
 
 const STATUS_STYLES: Record<string, string> = {
   ACTIVE: "bg-blue-100 text-blue-700",
@@ -162,6 +164,7 @@ export default async function ClientDetailPage({
                 </span>
               )}
             </div>
+            <ClientTags clientId={client.id} />
           </div>
 
           {/* Key metrics */}
@@ -215,6 +218,10 @@ export default async function ClientDetailPage({
                 />
               </div>
             )}
+
+            <div className="border-t border-border/50 pt-6">
+              <ClientCustomFields clientId={client.id} />
+            </div>
 
             <div className="border-t border-border/50 pt-6">
               <ClientDocuments clientId={client.id} />

@@ -26,6 +26,8 @@ export async function GET(req: NextRequest, { params }: Params) {
       },
       stageCompletions: true,
       emailLogs: { orderBy: { sentAt: "desc" }, take: 10 },
+      customFieldValues: true,
+      tags: { include: { tag: true } },
     },
   });
 
@@ -46,14 +48,34 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json();
-  const parsed = updateClientSchema.safeParse(body);
-  if (!parsed.success) {
+  const { customFields, ...rest } = body;
+  const parsed = updateClientSchema.safeParse(rest);
+  if (!parsed.success && Object.keys(rest).length > 0) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const client = await prisma.client.update({
+  // Update standard fields if provided
+  if (parsed.success && Object.keys(parsed.data).length > 0) {
+    await prisma.client.update({
+      where: { id: clientId },
+      data: { ...parsed.data, email: parsed.data.email === "" ? null : parsed.data.email },
+    });
+  }
+
+  // Update custom field values if provided
+  if (customFields && typeof customFields === "object") {
+    for (const [fieldId, value] of Object.entries(customFields as Record<string, string>)) {
+      await prisma.customFieldValue.upsert({
+        where: { customFieldId_clientId: { customFieldId: fieldId, clientId } },
+        update: { value: String(value) },
+        create: { customFieldId: fieldId, clientId, value: String(value) },
+      });
+    }
+  }
+
+  const client = await prisma.client.findUnique({
     where: { id: clientId },
-    data: { ...parsed.data, email: parsed.data.email === "" ? null : parsed.data.email },
+    include: { customFieldValues: true },
   });
 
   return NextResponse.json(client);

@@ -5,6 +5,7 @@ import { SettingsForm } from "@/components/settings/settings-form";
 import { TeamTab } from "@/components/settings/team-tab";
 import { AuditLogTab } from "@/components/settings/audit-log-tab";
 import { WebhooksTab } from "@/components/settings/webhooks-tab";
+import { CustomFieldsTab } from "@/components/settings/custom-fields-tab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default async function SettingsPage() {
@@ -46,6 +47,7 @@ export default async function SettingsPage() {
           <TabsList className="mb-6">
             <TabsTrigger value="workspace">Workspace</TabsTrigger>
             <TabsTrigger value="team">Team</TabsTrigger>
+            <TabsTrigger value="fields">Custom Fields</TabsTrigger>
             <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
             <TabsTrigger value="audit">Audit Log</TabsTrigger>
           </TabsList>
@@ -54,6 +56,9 @@ export default async function SettingsPage() {
           </TabsContent>
           <TabsContent value="team">
             <TeamTab currentUserId={session.user.id} />
+          </TabsContent>
+          <TabsContent value="fields">
+            <CustomFieldsTab />
           </TabsContent>
           <TabsContent value="webhooks">
             <WebhooksTab />

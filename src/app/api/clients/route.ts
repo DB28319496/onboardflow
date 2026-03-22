@@ -49,7 +49,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const { pipelineId, stageId: initialStageId, ...rest } = parsed.data;
+  const { pipelineId, stageId: initialStageId, skipDuplicateCheck, ...rest } = parsed.data;
+
+  // Duplicate detection
+  if (!skipDuplicateCheck && rest.email) {
+    const duplicate = await prisma.client.findFirst({
+      where: { workspaceId: workspace.id, email: rest.email },
+      select: { id: true, name: true },
+    });
+    if (duplicate) {
+      return NextResponse.json(
+        { error: `A client with this email already exists: ${duplicate.name}`, duplicate: true, existingClientId: duplicate.id },
+        { status: 409 }
+      );
+    }
+  }
+
   let currentStageId: string | undefined;
   let resolvedPipelineId = pipelineId;
 
