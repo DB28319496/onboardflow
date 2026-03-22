@@ -7,6 +7,7 @@ import { KanbanBoard, KanbanClient, KanbanPipeline } from "@/components/kanban/k
 import { PipelineSwitcher } from "@/components/kanban/pipeline-switcher";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { OnboardingWizard } from "@/components/dashboard/onboarding-wizard";
+import { DashboardWidgets } from "@/components/dashboard/dashboard-widgets";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -82,7 +83,29 @@ async function getDashboardData(workspaceId: string, pipelineId?: string) {
     take: 15,
   });
 
-  return { pipeline: kanbanPipeline, allPipelines, clients, totalValue, totalActive: clients.length, recentActivities };
+  // Compute overdue clients
+  const now = Date.now();
+  const overdueClients = dbClients
+    .filter((c) => {
+      const stage = pipeline.stages.find((s) => s.id === c.currentStageId);
+      if (!stage?.daysExpected) return false;
+      const daysIn = Math.floor((now - new Date(c.stageEnteredAt).getTime()) / 86_400_000);
+      return daysIn > stage.daysExpected;
+    })
+    .map((c) => {
+      const stage = pipeline.stages.find((s) => s.id === c.currentStageId)!;
+      const daysIn = Math.floor((now - new Date(c.stageEnteredAt).getTime()) / 86_400_000);
+      return {
+        id: c.id,
+        name: c.name,
+        daysOverdue: daysIn - (stage.daysExpected ?? 0),
+        stageName: stage.name,
+        stageColor: stage.color,
+      };
+    })
+    .sort((a, b) => b.daysOverdue - a.daysOverdue);
+
+  return { pipeline: kanbanPipeline, allPipelines, clients, totalValue, totalActive: clients.length, recentActivities, overdueClients };
 }
 
 export default async function DashboardPage({
@@ -101,7 +124,7 @@ export default async function DashboardPage({
 
   const { pipeline: pipelineParam } = await searchParams;
 
-  const { pipeline, allPipelines, clients, totalValue, totalActive, recentActivities } =
+  const { pipeline, allPipelines, clients, totalValue, totalActive, recentActivities, overdueClients } =
     await getDashboardData(member.workspaceId, pipelineParam);
 
   const avgValue = totalActive > 0 ? totalValue / totalActive : 0;
@@ -166,10 +189,13 @@ export default async function DashboardPage({
             <KanbanBoard pipeline={pipeline} initialClients={clients} />
           </div>
           <div className="hidden xl:block w-72 shrink-0">
-            <div className="sticky top-0">
-              <p className="text-sm font-semibold mb-3">Recent Activity</p>
-              <div className="rounded-xl border border-border/60 bg-card">
-                <ActivityFeed activities={recentActivities} />
+            <div className="sticky top-0 space-y-4">
+              <DashboardWidgets overdueClients={overdueClients} />
+              <div>
+                <p className="text-sm font-semibold mb-3">Recent Activity</p>
+                <div className="rounded-xl border border-border/60 bg-card">
+                  <ActivityFeed activities={recentActivities} />
+                </div>
               </div>
             </div>
           </div>

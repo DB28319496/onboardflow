@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace } from "@/lib/api-helpers";
-import { sendEmail, applyMergeFields, type MergeFields } from "@/lib/email";
+import { sendEmail, applyMergeFields, generateTrackingId, type MergeFields } from "@/lib/email";
 import { z } from "zod";
 
 type Params = { params: Promise<{ clientId: string }> };
@@ -76,12 +76,15 @@ export async function POST(req: NextRequest, { params }: Params) {
   const finalSubject = applyMergeFields(subject, mergeFields);
   const finalBody = applyMergeFields(htmlBody, mergeFields);
 
+  const trackingId = generateTrackingId();
+
   const result = await sendEmail({
     to: client.email,
     subject: finalSubject,
     html: finalBody,
     fromName: workspace.emailFromName ?? workspace.name,
     replyTo: workspace.emailReplyTo ?? undefined,
+    trackingId,
   });
 
   const status = result.success ? "SENT" : "FAILED";
@@ -92,6 +95,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       subject: finalSubject,
       body: finalBody,
       status,
+      trackingId,
       clientId: client.id,
       workspaceId: workspace.id,
       templateId: parsed.data.templateId ?? null,

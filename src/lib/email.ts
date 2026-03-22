@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import crypto from "crypto";
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -38,19 +39,37 @@ export function applyMergeFields(template: string, fields: MergeFields): string 
   return result;
 }
 
+export function generateTrackingId(): string {
+  return crypto.randomUUID().replace(/-/g, "");
+}
+
+export function injectTrackingPixel(html: string, trackingId: string): string {
+  const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3002";
+  const pixel = `<img src="${baseUrl}/api/email-tracking?id=${trackingId}" width="1" height="1" style="display:none" alt="" />`;
+  // Insert before closing </body> or append to end
+  if (html.includes("</body>")) {
+    return html.replace("</body>", `${pixel}</body>`);
+  }
+  return html + pixel;
+}
+
 export async function sendEmail({
   to,
   subject,
   html,
   fromName = "Cadence",
   replyTo,
+  trackingId,
 }: {
   to: string;
   subject: string;
   html: string;
   fromName?: string;
   replyTo?: string;
+  trackingId?: string;
 }): Promise<{ success: boolean; error?: string }> {
+  // Inject tracking pixel if trackingId provided
+  const finalHtml = trackingId ? injectTrackingPixel(html, trackingId) : html;
   if (!resend) {
     // No API key configured — log and succeed silently (dev/demo mode)
     console.log(`[Email] No RESEND_API_KEY — skipping send to ${to}: ${subject}`);
@@ -61,7 +80,7 @@ export async function sendEmail({
       from: `${fromName} <onboarding@resend.dev>`,
       to,
       subject,
-      html,
+      html: finalHtml,
       ...(replyTo ? { replyTo } : {}),
     });
     return { success: true };

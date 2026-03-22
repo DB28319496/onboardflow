@@ -36,6 +36,7 @@ model Workspace {
   webhooks        Webhook[]
   customFields    CustomField[]
   tags            Tag[]
+  reminders       Reminder[]
 }
 
 model User {
@@ -56,6 +57,7 @@ model User {
   notifications   Notification[]
   auditLogs       AuditLog[]
   portalMessages  PortalMessage[] @relation("PortalMessages")
+  reminders       Reminder[]
 }
 
 model WorkspaceMember {
@@ -163,6 +165,7 @@ model Client {
   portalMessages   PortalMessage[]
   customFieldValues CustomFieldValue[]
   tags             ClientTag[]
+  reminders        Reminder[]
 
   @@index([workspaceId, status])
   @@index([currentStageId])
@@ -240,11 +243,13 @@ model EmailTemplate {
 }
 
 model EmailLog {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   subject          String
   body             String
-  sentAt           DateTime @default(now())
-  status           String   @default("SENT")
+  sentAt           DateTime  @default(now())
+  status           String    @default("SENT")
+  trackingId       String?   @unique
+  openedAt         DateTime?
   clientId         String?
   workspaceId      String?
   templateId       String?
@@ -279,6 +284,27 @@ model AutomationRule {
   stage     Stage?         @relation(fields: [stageId], references: [id], onDelete: SetNull)
   template  EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   emailLogs EmailLog[]
+}
+
+// ==================== REMINDERS ====================
+
+model Reminder {
+  id          String    @id @default(cuid())
+  title       String
+  dueAt       DateTime
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  clientId    String
+  userId      String
+  workspaceId String
+  createdAt   DateTime  @default(now())
+
+  client    Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dueAt])
+  @@index([clientId])
 }
 
 // ==================== CUSTOM FIELDS ====================

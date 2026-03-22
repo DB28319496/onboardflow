@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { applyMergeFields, sendEmail, MergeFields } from "@/lib/email";
+import { applyMergeFields, sendEmail, generateTrackingId, MergeFields } from "@/lib/email";
 import { formatCurrency } from "@/lib/utils";
 import { generateWeeklySummaryEmail, type WorkspaceSummaryData } from "@/lib/ai-summary";
 
@@ -94,12 +94,15 @@ export async function fireAutomations(
     const subject = applyMergeFields(rule.template.subject, mergeFields);
     const html = applyMergeFields(rule.template.body, mergeFields);
 
+    const trackingId = generateTrackingId();
+
     const result = await sendEmail({
       to: client.email,
       subject,
       html,
       fromName: workspace.emailFromName ?? workspace.name,
       replyTo: workspace.emailReplyTo ?? undefined,
+      trackingId,
     });
 
     await prisma.emailLog.create({
@@ -110,6 +113,7 @@ export async function fireAutomations(
         clientId: client.id,
         templateId: rule.template.id,
         automationRuleId: rule.id,
+        trackingId,
       },
     });
 
