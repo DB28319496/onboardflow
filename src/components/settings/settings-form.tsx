@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Save, Copy, Check, ShieldAlert } from "lucide-react";
+import { Loader2, Save, Copy, Check, ShieldAlert, Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useRole } from "@/components/dashboard/role-context";
 
@@ -370,6 +370,41 @@ export function SettingsForm({ workspace: initial }: { workspace: WorkspaceData 
             </p>
           </div>
         </section>
+
+        {/* ── Data Management ──────────────────────────────────────────────── */}
+        {canManage && (
+          <>
+            <Separator />
+            <section className="space-y-4">
+              <div>
+                <p className="text-sm font-semibold">Data Management</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Export your workspace data or generate reports.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open("/api/export", "_blank")}
+                >
+                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                  Export All Data (JSON)
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open("/api/reports?type=pipeline", "_blank")}
+                >
+                  <FileText className="h-3.5 w-3.5 mr-1.5" />
+                  Pipeline Report (PDF)
+                </Button>
+              </div>
+            </section>
+          </>
+        )}
 
         {/* ── Save ─────────────────────────────────────────────────────────── */}
         {canManage ? (

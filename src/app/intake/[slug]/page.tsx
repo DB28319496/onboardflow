@@ -10,7 +10,16 @@ export default async function IntakePage({
 
   const workspace = await prisma.workspace.findUnique({
     where: { slug },
-    select: { name: true, brandColor: true, intakeEnabled: true },
+    select: {
+      name: true,
+      brandColor: true,
+      intakeEnabled: true,
+      pipelines: {
+        where: { isActive: true },
+        select: { id: true, name: true, isDefault: true },
+        orderBy: { createdAt: "asc" },
+      },
+    },
   });
 
   if (!workspace) {
@@ -65,7 +74,7 @@ export default async function IntakePage({
           <p className="text-sm text-muted-foreground mb-6">
             Fill out the form below and we&apos;ll reach out to get your project started.
           </p>
-          <IntakeForm slug={slug} />
+          <IntakeForm slug={slug} pipelines={workspace.pipelines} />
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-6">

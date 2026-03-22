@@ -15,6 +15,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
 const schema = z.object({
@@ -28,10 +35,15 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-export function IntakeForm({ slug }: { slug: string }) {
+type Pipeline = { id: string; name: string; isDefault: boolean };
+
+export function IntakeForm({ slug, pipelines = [] }: { slug: string; pipelines?: Pipeline[] }) {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPipeline, setSelectedPipeline] = useState(
+    pipelines.find((p) => p.isDefault)?.id ?? pipelines[0]?.id ?? ""
+  );
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as never,
@@ -45,7 +57,7 @@ export function IntakeForm({ slug }: { slug: string }) {
       const res = await fetch(`/api/intake/${slug}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ ...values, ...(selectedPipeline ? { pipelineId: selectedPipeline } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -75,6 +87,25 @@ export function IntakeForm({ slug }: { slug: string }) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {pipelines.length > 1 && (
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+              What can we help you with?
+            </label>
+            <Select value={selectedPipeline} onValueChange={setSelectedPipeline}>
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Select a service..." />
+              </SelectTrigger>
+              <SelectContent>
+                {pipelines.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         <FormField
           control={form.control}
           name="name"

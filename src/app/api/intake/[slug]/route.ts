@@ -39,7 +39,14 @@ export async function GET(
     if (!workspace) return NextResponse.json({ error: "Not found" }, { status: 404, headers: CORS_HEADERS });
     if (!workspace.intakeEnabled) return NextResponse.json({ error: "Intake form is not enabled" }, { status: 403, headers: CORS_HEADERS });
 
-    return NextResponse.json({ name: workspace.name, brandColor: workspace.brandColor }, { headers: CORS_HEADERS });
+    // Fetch pipelines for pipeline-specific intake forms
+    const pipelines = await prisma.pipeline.findMany({
+      where: { workspaceId: workspace.id, isActive: true },
+      select: { id: true, name: true, isDefault: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return NextResponse.json({ name: workspace.name, brandColor: workspace.brandColor, pipelines }, { headers: CORS_HEADERS });
   } catch (err) {
     console.error("[intake GET error]", err);
     return NextResponse.json({ error: String(err) }, { status: 500, headers: CORS_HEADERS });
@@ -67,6 +74,32 @@ export async function POST(
 
   const { name, email, phone, companyName, projectType, notes } = parsed.data;
 
+  // Support pipeline-specific intake via pipelineId in body
+  const pipelineId = body.pipelineId as string | undefined;
+  let resolvedPipelineId: string | undefined;
+  let currentStageId: string | undefined;
+
+  if (pipelineId) {
+    const pipeline = await prisma.pipeline.findFirst({
+      where: { id: pipelineId, workspaceId: workspace.id },
+      include: { stages: { orderBy: { order: "asc" }, take: 1 } },
+    });
+    if (pipeline) {
+      resolvedPipelineId = pipeline.id;
+      currentStageId = pipeline.stages[0]?.id;
+    }
+  }
+  if (!resolvedPipelineId) {
+    const defaultPipeline = await prisma.pipeline.findFirst({
+      where: { workspaceId: workspace.id, isDefault: true },
+      include: { stages: { orderBy: { order: "asc" }, take: 1 } },
+    });
+    if (defaultPipeline) {
+      resolvedPipelineId = defaultPipeline.id;
+      currentStageId = defaultPipeline.stages[0]?.id;
+    }
+  }
+
   const client = await prisma.client.create({
     data: {
       name,
@@ -77,6 +110,8 @@ export async function POST(
       notes: notes || null,
       source: "INTAKE",
       workspaceId: workspace.id,
+      pipelineId: resolvedPipelineId,
+      currentStageId,
     },
   });
 

@@ -31,6 +31,7 @@ import {
 import { Loader2, Copy, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { MERGE_FIELD_TOKENS, applyMergeFields } from "@/lib/email";
+import { RichTextEditor } from "./rich-text-editor";
 
 const TEMPLATE_TYPES = [
   { value: "WELCOME", label: "Welcome" },
@@ -319,13 +320,12 @@ export function TemplateDialog({
                   name="body"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs">Body (HTML) *</FormLabel>
+                      <FormLabel className="text-xs">Body *</FormLabel>
                       <FormControl>
-                        <Textarea
-                          {...field}
-                          rows={12}
-                          className="resize-y font-mono text-xs"
-                          placeholder={"<p>Hi {{client_name}},</p>\n<p>Welcome to {{workspace_name}}!</p>"}
+                        <RichTextEditor
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Hi {{client_name}}, Welcome to {{workspace_name}}!"
                         />
                       </FormControl>
                       <FormMessage />
