@@ -11,7 +11,7 @@ import crypto from "crypto";
 export async function POST(req: NextRequest) {
   // Rate limit: 5 signups per minute per IP
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? "unknown";
-  const { success, resetAt } = rateLimit({ key: `signup:${ip}`, limit: 5, windowMs: 60_000 });
+  const { success, resetAt } = await rateLimit({ key: `signup:${ip}`, limit: 5, windowMs: 60_000 });
   if (!success) return rateLimitResponse(resetAt);
 
   try {

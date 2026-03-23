@@ -60,7 +60,7 @@ export async function POST(
 ) {
   // Rate limit: 10 submissions per minute per IP
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? "unknown";
-  const { success, resetAt } = rateLimit({ key: `intake:${ip}`, limit: 10, windowMs: 60_000 });
+  const { success, resetAt } = await rateLimit({ key: `intake:${ip}`, limit: 10, windowMs: 60_000 });
   if (!success) return rateLimitResponse(resetAt);
 
   const { slug } = await params;

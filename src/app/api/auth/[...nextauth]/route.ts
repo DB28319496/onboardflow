@@ -8,7 +8,7 @@ export const { GET } = handlers;
 export async function POST(req: NextRequest) {
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  const { success, resetAt } = rateLimit({
+  const { success, resetAt } = await rateLimit({
     key: `auth:${ip}`,
     limit: 10,
     windowMs: 60_000, // 10 attempts per minute per IP

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace, requireRole } from "@/lib/api-helpers";
 import { updateClientSchema } from "@/lib/validations";
 import { logAudit } from "@/lib/audit";
+import { encrypt, decrypt } from "@/lib/encryption";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   });
 
   if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(client);
+  return NextResponse.json({ ...client, phone: client.phone ? decrypt(client.phone) : null });
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
@@ -58,7 +59,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (parsed.success && Object.keys(parsed.data).length > 0) {
     await prisma.client.update({
       where: { id: clientId },
-      data: { ...parsed.data, email: parsed.data.email === "" ? null : parsed.data.email },
+      data: {
+        ...parsed.data,
+        email: parsed.data.email === "" ? null : parsed.data.email,
+        ...(parsed.data.phone !== undefined && { phone: parsed.data.phone ? encrypt(parsed.data.phone) : null }),
+      },
     });
   }
 
@@ -78,7 +83,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     include: { customFieldValues: true },
   });
 
-  return NextResponse.json(client);
+  return NextResponse.json(client ? { ...client, phone: client.phone ? decrypt(client.phone) : null } : client);
 }
 
 export async function DELETE(req: NextRequest, { params }: Params) {

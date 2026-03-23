@@ -5,6 +5,7 @@ import { createClientSchema } from "@/lib/validations";
 import { fireAutomations } from "@/lib/automation-engine";
 import { notifyWorkspaceMembers } from "@/lib/notifications";
 import { fireWebhooks } from "@/lib/webhooks";
+import { encrypt, decrypt } from "@/lib/encryption";
 
 export async function GET(req: NextRequest) {
   const { session, userId, error } = await requireAuth();
@@ -34,7 +35,13 @@ export async function GET(req: NextRequest) {
     orderBy: { stageEnteredAt: "asc" },
   });
 
-  return NextResponse.json(clients);
+  // Decrypt PII fields before returning
+  const decrypted = clients.map((c) => ({
+    ...c,
+    phone: c.phone ? decrypt(c.phone) : null,
+  }));
+
+  return NextResponse.json(decrypted);
 }
 
 export async function POST(req: NextRequest) {
@@ -97,6 +104,7 @@ export async function POST(req: NextRequest) {
     data: {
       ...rest,
       email: rest.email || null,
+      phone: rest.phone ? encrypt(rest.phone) : null,
       workspaceId: workspace.id,
       pipelineId: resolvedPipelineId,
       currentStageId,
