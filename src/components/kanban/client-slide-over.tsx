@@ -58,18 +58,35 @@ export function ClientSlideOver({
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState("");
   const [savingNote, setSavingNote] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [movingStage, setMovingStage] = useState(false);
 
   useEffect(() => {
     setLoading(true);
+    setLoadError(false);
     fetch(`/api/clients/${clientId}`)
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) {
+          console.error(`[slide-over] Failed to load client: ${r.status}`);
+          setLoadError(true);
+          return null;
+        }
+        return r.json();
+      })
       .then((data) => {
-        // Convert Date strings
+        if (!data || data.error) {
+          console.error("[slide-over] Invalid client data:", data);
+          setLoadError(true);
+          return;
+        }
         setClient({
           ...data,
           stageEnteredAt: data.stageEnteredAt ?? new Date().toISOString(),
         });
+      })
+      .catch((err) => {
+        console.error("[slide-over] Fetch error:", err);
+        setLoadError(true);
       })
       .finally(() => setLoading(false));
   }, [clientId]);
@@ -134,9 +151,15 @@ export function ClientSlideOver({
           <SheetTitle>{client?.name ?? "Client Details"}</SheetTitle>
         </SheetHeader>
 
-        {loading || !client ? (
+        {loading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : loadError || !client ? (
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
+            <p className="text-sm font-medium text-destructive">Failed to load client</p>
+            <p className="text-xs text-muted-foreground">The client may have been deleted or you may not have access.</p>
+            <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
           </div>
         ) : (
           <>

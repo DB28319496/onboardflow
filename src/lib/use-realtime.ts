@@ -3,15 +3,27 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
+const MAX_RETRIES = 3; // Stop trying after 3 failed connections
+
 export function useRealtime() {
   const queryClient = useQueryClient();
   const retryCount = useRef(0);
 
   useEffect(() => {
+    // Skip SSE in environments that don't support it
+    if (typeof EventSource === "undefined") return;
+
     let eventSource: EventSource | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout>;
+    let disposed = false;
 
     function connect() {
+      if (disposed) return;
+      if (retryCount.current >= MAX_RETRIES) {
+        // SSE not supported on this host — fall back to polling-free mode
+        return;
+      }
+
       eventSource = new EventSource("/api/events");
 
       eventSource.onopen = () => {
@@ -22,7 +34,6 @@ export function useRealtime() {
         try {
           const data = JSON.parse(event.data) as { type: string };
 
-          // Invalidate relevant queries based on event type
           switch (data.type) {
             case "CLIENT_UPDATED":
             case "CLIENT_CREATED":
@@ -45,9 +56,14 @@ export function useRealtime() {
 
       eventSource.onerror = () => {
         eventSource?.close();
-        // Exponential backoff: 1s, 2s, 4s, 8s, max 30s
-        const delay = Math.min(1000 * 2 ** retryCount.current, 30_000);
         retryCount.current++;
+
+        if (retryCount.current >= MAX_RETRIES) {
+          // SSE not available — silently stop
+          return;
+        }
+
+        const delay = Math.min(1000 * 2 ** retryCount.current, 30_000);
         reconnectTimer = setTimeout(connect, delay);
       };
     }
@@ -55,6 +71,7 @@ export function useRealtime() {
     connect();
 
     return () => {
+      disposed = true;
       eventSource?.close();
       clearTimeout(reconnectTimer);
     };
