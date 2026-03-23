@@ -18,30 +18,36 @@ export async function GET(req: NextRequest) {
   const stageId = searchParams.get("stageId");
   const status = searchParams.get("status");
 
-  const clients = await prisma.client.findMany({
-    where: {
-      workspaceId: workspace.id,
-      ...(pipelineId && { pipelineId }),
-      ...(stageId && { currentStageId: stageId }),
-      status: status ?? "ACTIVE",
-    },
-    include: {
-      currentStage: {
-        select: { id: true, name: true, color: true, daysExpected: true },
+  try {
+    const clients = await prisma.client.findMany({
+      where: {
+        workspaceId: workspace.id,
+        ...(pipelineId && { pipelineId }),
+        ...(stageId && { currentStageId: stageId }),
+        status: status ?? "ACTIVE",
       },
-      assignedTo: { select: { id: true, name: true, image: true } },
-      stageCompletions: { select: { checklistItemId: true, stageId: true } },
-    },
-    orderBy: { stageEnteredAt: "asc" },
-  });
+      include: {
+        currentStage: {
+          select: { id: true, name: true, color: true, daysExpected: true },
+        },
+        assignedTo: { select: { id: true, name: true, image: true } },
+        stageCompletions: { select: { checklistItemId: true, stageId: true } },
+      },
+      orderBy: { stageEnteredAt: "asc" },
+    });
 
-  // Decrypt PII fields before returning
-  const decrypted = clients.map((c) => ({
-    ...c,
-    phone: c.phone ? decrypt(c.phone) : null,
-  }));
+    // Decrypt PII fields before returning
+    const decrypted = clients.map((c) => {
+      let phone = c.phone;
+      try { phone = phone ? decrypt(phone) : null; } catch { /* no-op */ }
+      return { ...c, phone };
+    });
 
-  return NextResponse.json(decrypted);
+    return NextResponse.json(decrypted);
+  } catch (err) {
+    console.error("[clients GET] Error:", err);
+    return NextResponse.json({ error: "Failed to load clients" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {

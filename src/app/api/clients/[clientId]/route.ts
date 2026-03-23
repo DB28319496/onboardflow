@@ -9,31 +9,44 @@ type Params = { params: Promise<{ clientId: string }> };
 
 export async function GET(req: NextRequest, { params }: Params) {
   const { clientId } = await params;
-  const { session, userId, error } = await requireAuth();
+  const { userId, error } = await requireAuth();
   if (error) return error;
   const { workspace, error: wsError } = await requireWorkspace(userId);
   if (wsError) return wsError;
 
-  const client = await prisma.client.findFirst({
-    where: { id: clientId, workspaceId: workspace.id },
-    include: {
-      currentStage: true,
-      pipeline: { include: { stages: { orderBy: { order: "asc" } } } },
-      assignedTo: { select: { id: true, name: true, image: true } },
-      activities: {
-        orderBy: { createdAt: "desc" },
-        take: 20,
-        include: { user: { select: { id: true, name: true, image: true } } },
+  try {
+    const client = await prisma.client.findFirst({
+      where: { id: clientId, workspaceId: workspace.id },
+      include: {
+        currentStage: true,
+        pipeline: { include: { stages: { orderBy: { order: "asc" } } } },
+        assignedTo: { select: { id: true, name: true, image: true } },
+        activities: {
+          orderBy: { createdAt: "desc" },
+          take: 20,
+          include: { user: { select: { id: true, name: true, image: true } } },
+        },
+        stageCompletions: true,
+        emailLogs: { orderBy: { sentAt: "desc" }, take: 10 },
+        customFieldValues: true,
+        tags: { include: { tag: true } },
       },
-      stageCompletions: true,
-      emailLogs: { orderBy: { sentAt: "desc" }, take: 10 },
-      customFieldValues: true,
-      tags: { include: { tag: true } },
-    },
-  });
+    });
 
-  if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ ...client, phone: client.phone ? decrypt(client.phone) : null });
+    if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    let phone = client.phone;
+    try {
+      phone = phone ? decrypt(phone) : null;
+    } catch {
+      // decrypt may fail if crypto not available — return raw value
+    }
+
+    return NextResponse.json({ ...client, phone });
+  } catch (err) {
+    console.error("[client GET] Error:", err);
+    return NextResponse.json({ error: "Failed to load client" }, { status: 500 });
+  }
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
