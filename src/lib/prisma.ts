@@ -1,21 +1,11 @@
-import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
 function createPrismaClient() {
-  // Use HTTPS (HTTP/1.1) instead of WebSocket for Turso in production.
-  // Serverless functions should not hold persistent WebSocket connections.
-  const rawUrl = process.env.DATABASE_URL!;
-  const url =
-    process.env.NODE_ENV === "production"
-      ? rawUrl.replace(/^libsql:\/\//, "https://")
-      : rawUrl;
-
-  const adapter = new PrismaLibSql({
-    url,
-    authToken: process.env.DATABASE_AUTH_TOKEN,
-  });
+  const connectionString = process.env.DATABASE_URL!;
+  const adapter = new PrismaPg({ connectionString });
 
   return new PrismaClient({
     adapter,

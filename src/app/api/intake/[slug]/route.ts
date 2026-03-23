@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { fireAutomations } from "@/lib/automation-engine";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 
@@ -57,6 +58,11 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  // Rate limit: 10 submissions per minute per IP
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? "unknown";
+  const { success, resetAt } = rateLimit({ key: `intake:${ip}`, limit: 10, windowMs: 60_000 });
+  if (!success) return rateLimitResponse(resetAt);
+
   const { slug } = await params;
   const workspace = await prisma.workspace.findUnique({
     where: { slug },

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { Sidebar } from "@/components/dashboard/sidebar";
@@ -6,6 +7,7 @@ import { Header } from "@/components/dashboard/header";
 import { SidebarProvider } from "@/components/dashboard/sidebar-context";
 import { RoleProvider, type Role } from "@/components/dashboard/role-context";
 import { DemoTour } from "@/components/demo-tour";
+import { RealtimeProvider } from "@/components/dashboard/realtime-provider";
 import { prisma } from "@/lib/prisma";
 
 export default async function DashboardLayout({
@@ -16,9 +18,9 @@ export default async function DashboardLayout({
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  let member;
+  let memberships;
   try {
-    member = await prisma.workspaceMember.findFirst({
+    memberships = await prisma.workspaceMember.findMany({
       where: { userId: session.user.id },
       include: { workspace: true },
       orderBy: { createdAt: "asc" },
@@ -28,7 +30,18 @@ export default async function DashboardLayout({
     throw err;
   }
 
-  if (!member) redirect("/signup");
+  if (!memberships || memberships.length === 0) redirect("/signup");
+
+  // Determine active workspace from cookie or default to first
+  const cookieStore = await cookies();
+  const activeWsId = cookieStore.get("active_workspace")?.value;
+  const member =
+    memberships.find((m) => m.workspaceId === activeWsId) ?? memberships[0];
+  const allWorkspaces = memberships.map((m) => ({
+    id: m.workspace.id,
+    name: m.workspace.name,
+    slug: m.workspace.slug,
+  }));
 
   return (
     <SidebarProvider>
@@ -41,8 +54,12 @@ export default async function DashboardLayout({
               userName={session.user.name ?? ""}
               userEmail={session.user.email ?? ""}
               userImage={session.user.image ?? undefined}
+              workspaces={allWorkspaces}
+              currentWorkspaceId={member.workspaceId}
             />
-            <main className="flex-1 overflow-auto">{children}</main>
+            <RealtimeProvider>
+              <main className="flex-1 overflow-auto">{children}</main>
+            </RealtimeProvider>
           </div>
           <Suspense>
             <DemoTour />

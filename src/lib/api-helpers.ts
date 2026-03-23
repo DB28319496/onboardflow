@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export type Role = "OWNER" | "ADMIN" | "MEMBER";
@@ -32,6 +33,7 @@ export async function requireAuth() {
 }
 
 export async function requireWorkspace(userId: string, workspaceId?: string) {
+  // If explicit workspaceId provided, use it
   if (workspaceId) {
     const member = await prisma.workspaceMember.findUnique({
       where: { userId_workspaceId: { userId, workspaceId } },
@@ -50,6 +52,26 @@ export async function requireWorkspace(userId: string, workspaceId?: string) {
     return { workspace: member.workspace, member, error: null };
   }
 
+  // Try to get active workspace from cookie
+  let cookieWsId: string | undefined;
+  try {
+    const cookieStore = await cookies();
+    cookieWsId = cookieStore.get("active_workspace")?.value;
+  } catch {
+    // cookies() may throw in certain contexts
+  }
+
+  if (cookieWsId) {
+    const member = await prisma.workspaceMember.findUnique({
+      where: { userId_workspaceId: { userId, workspaceId: cookieWsId } },
+      include: { workspace: true },
+    });
+    if (member) {
+      return { workspace: member.workspace, member, error: null };
+    }
+  }
+
+  // Fallback to first workspace
   const member = await prisma.workspaceMember.findFirst({
     where: { userId },
     include: { workspace: true },

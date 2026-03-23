@@ -10,17 +10,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, User, Menu } from "lucide-react";
+import { LogOut, Settings, User, Menu, Moon, Sun } from "lucide-react";
 import Link from "next/link";
+import { useTheme } from "next-themes";
 import { useSidebar } from "./sidebar-context";
 import { NotificationBell } from "./notification-bell";
 import { CommandMenu } from "./command-menu";
+import { WorkspaceSwitcher } from "./workspace-switcher";
+
+type Workspace = { id: string; name: string; slug: string };
 
 interface HeaderProps {
   workspaceName: string;
   userName: string;
   userEmail: string;
   userImage?: string;
+  workspaces?: Workspace[];
+  currentWorkspaceId?: string;
 }
 
 function getInitials(name: string): string {
@@ -32,8 +38,9 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-export function Header({ workspaceName, userName, userEmail, userImage }: HeaderProps) {
+export function Header({ workspaceName, userName, userEmail, userImage, workspaces = [], currentWorkspaceId = "" }: HeaderProps) {
   const { setOpen } = useSidebar();
+  const { theme, setTheme } = useTheme();
 
   return (
     <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 sm:px-6 shrink-0">
@@ -46,11 +53,19 @@ export function Header({ workspaceName, userName, userEmail, userImage }: Header
         >
           <Menu className="h-5 w-5" />
         </button>
-        <span className="text-sm font-medium text-muted-foreground hidden sm:block">{workspaceName}</span>
+        <WorkspaceSwitcher workspaces={workspaces} currentWorkspaceId={currentWorkspaceId} />
         <CommandMenu />
       </div>
 
       <div className="flex items-center gap-2">
+      <button
+        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        aria-label="Toggle theme"
+      >
+        <Sun className="h-4 w-4 hidden dark:block" />
+        <Moon className="h-4 w-4 block dark:hidden" />
+      </button>
       <NotificationBell />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -80,7 +95,7 @@ export function Header({ workspaceName, userName, userEmail, userImage }: Header
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href="/settings" className="flex items-center gap-2 cursor-pointer">
+            <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
               <User className="h-4 w-4" />
               Profile
             </Link>

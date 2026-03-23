@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { z } from "zod";
 
 type Params = { params: Promise<{ token: string }> };
@@ -30,6 +31,11 @@ export async function GET(_req: NextRequest, { params }: Params) {
 }
 
 export async function POST(req: NextRequest, { params }: Params) {
+  // Rate limit: 20 messages per minute per IP
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? "unknown";
+  const { success, resetAt } = rateLimit({ key: `portal-msg:${ip}`, limit: 20, windowMs: 60_000 });
+  if (!success) return rateLimitResponse(resetAt);
+
   const { token } = await params;
 
   const client = await prisma.client.findUnique({

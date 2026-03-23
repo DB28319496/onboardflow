@@ -3,8 +3,16 @@ import { hash } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signupSchema } from "@/lib/validations";
 import { slugify } from "@/lib/utils";
+import { sendEmail } from "@/lib/email";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 5 signups per minute per IP
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? "unknown";
+  const { success, resetAt } = rateLimit({ key: `signup:${ip}`, limit: 5, windowMs: 60_000 });
+  if (!success) return rateLimitResponse(resetAt);
+
   try {
     const body = await req.json();
     const parsed = signupSchema.safeParse(body);
@@ -69,9 +77,48 @@ export async function POST(req: NextRequest) {
       });
     });
 
+    // Send verification email (non-blocking)
+    sendVerificationEmail(email, name ?? email, req.url).catch(console.error);
+
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (err) {
     console.error("[signup error]", err);
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
+}
+
+async function sendVerificationEmail(email: string, name: string, requestUrl: string) {
+  const token = crypto.randomBytes(32).toString("hex");
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+  await prisma.verificationToken.create({
+    data: {
+      identifier: email,
+      token,
+      expires,
+    },
+  });
+
+  const baseUrl = new URL(requestUrl).origin;
+  const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${token}`;
+
+  await sendEmail({
+    to: email,
+    subject: "Verify your email — Cadence",
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+        <h2 style="font-size: 20px; margin-bottom: 16px;">Welcome to Cadence, ${name}!</h2>
+        <p style="color: #555; font-size: 15px; line-height: 1.6;">
+          Please verify your email address to complete your account setup.
+        </p>
+        <a href="${verifyUrl}" style="display: inline-block; background: #1E3A5F; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; margin: 20px 0;">
+          Verify Email
+        </a>
+        <p style="color: #999; font-size: 13px; margin-top: 24px;">
+          This link expires in 24 hours. If you didn't create an account, you can safely ignore this email.
+        </p>
+      </div>
+    `,
+    fromName: "Cadence",
+  });
 }
