@@ -183,15 +183,15 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 flex overflow-hidden">
-        {/* Kanban — scrolls independently */}
-        <div className="flex-1 min-w-0 overflow-x-auto overflow-y-auto p-6">
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {/* Kanban — full width, horizontally scrollable */}
+        <div className="overflow-x-auto px-6 pt-6 pb-2">
           <KanbanBoard pipeline={pipeline} initialClients={clients} />
         </div>
 
-        {/* Right sidebar — fixed width, scrolls vertically, never overlapped */}
-        <aside className="hidden xl:flex w-72 shrink-0 border-l border-border/50 bg-background">
-          <div className="overflow-y-auto p-4 space-y-4 w-full">
+        {/* Widgets row — below the kanban, never overlapping */}
+        <div className="px-6 py-6 border-t border-border/50">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             <DashboardWidgets overdueClients={overdueClients} />
             <div>
               <p className="text-sm font-semibold mb-3">Recent Activity</p>
@@ -200,7 +200,7 @@ export default async function DashboardPage({
               </div>
             </div>
           </div>
-        </aside>
+        </div>
       </div>
     </div>
   );
