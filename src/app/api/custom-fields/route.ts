@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace, requireRole } from "@/lib/api-helpers";
+import { logAudit } from "@/lib/audit";
 import { z } from "zod";
 
 const createSchema = z.object({
@@ -51,6 +52,14 @@ export async function POST(req: NextRequest) {
       workspaceId: workspace.id,
     },
   });
+
+  logAudit({
+    action: "CUSTOM_FIELD_CREATED",
+    description: `Created custom field "${parsed.data.name}" (${parsed.data.type})`,
+    metadata: { fieldId: field.id, type: parsed.data.type },
+    userId,
+    workspaceId: workspace.id,
+  }).catch(console.error);
 
   return NextResponse.json(field, { status: 201 });
 }

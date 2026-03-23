@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace, requireRole } from "@/lib/api-helpers";
+import { logAudit } from "@/lib/audit";
 
 export async function DELETE(
   _req: NextRequest,
@@ -25,5 +26,14 @@ export async function DELETE(
   }
 
   await prisma.invitation.delete({ where: { id: inviteId } });
+
+  logAudit({
+    action: "INVITATION_REVOKED",
+    description: `Revoked invitation for ${invitation.email}`,
+    metadata: { inviteId, email: invitation.email },
+    userId,
+    workspaceId: workspace.id,
+  }).catch(console.error);
+
   return NextResponse.json({ success: true });
 }

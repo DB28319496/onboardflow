@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace, requireRole } from "@/lib/api-helpers";
+import { logAudit } from "@/lib/audit";
 import { z } from "zod";
 
 const createSchema = z.object({
@@ -44,6 +45,14 @@ export async function POST(req: NextRequest) {
       workspaceId: workspace.id,
     },
   });
+
+  logAudit({
+    action: "WEBHOOK_CREATED",
+    description: `Created webhook for ${parsed.data.url}`,
+    metadata: { webhookId: webhook.id, events: parsed.data.events },
+    userId,
+    workspaceId: workspace.id,
+  }).catch(console.error);
 
   return NextResponse.json(webhook, { status: 201 });
 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace } from "@/lib/api-helpers";
+import { logAudit } from "@/lib/audit";
+import { sanitizeEmailHtml } from "@/lib/sanitize-html";
 import { z } from "zod";
 
 const createSchema = z.object({
@@ -40,9 +42,17 @@ export async function POST(req: NextRequest) {
   }
 
   const template = await prisma.emailTemplate.create({
-    data: { ...parsed.data, workspaceId: workspace.id },
+    data: { ...parsed.data, body: sanitizeEmailHtml(parsed.data.body), workspaceId: workspace.id },
     include: { _count: { select: { emailLogs: true } } },
   });
+
+  logAudit({
+    action: "TEMPLATE_CREATED",
+    description: `Created email template "${parsed.data.name}"`,
+    metadata: { templateId: template.id },
+    userId,
+    workspaceId: workspace.id,
+  }).catch(console.error);
 
   return NextResponse.json(template, { status: 201 });
 }

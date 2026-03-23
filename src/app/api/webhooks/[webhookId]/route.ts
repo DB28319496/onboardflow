@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace, requireRole } from "@/lib/api-helpers";
+import { logAudit } from "@/lib/audit";
 
 type Params = { params: Promise<{ webhookId: string }> };
 
@@ -29,6 +30,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     },
   });
 
+  logAudit({
+    action: "WEBHOOK_UPDATED",
+    description: `Updated webhook "${webhook.url}"`,
+    metadata: { webhookId, changes: Object.keys(body).filter(k => body[k] !== undefined) },
+    userId,
+    workspaceId: workspace.id,
+  }).catch(console.error);
+
   return NextResponse.json(webhook);
 }
 
@@ -48,5 +57,14 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await prisma.webhook.delete({ where: { id: webhookId } });
+
+  logAudit({
+    action: "WEBHOOK_DELETED",
+    description: `Deleted webhook "${existing.url}"`,
+    metadata: { webhookId },
+    userId,
+    workspaceId: workspace.id,
+  }).catch(console.error);
+
   return NextResponse.json({ ok: true });
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace, requireRole } from "@/lib/api-helpers";
+import { logAudit } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
 import { z } from "zod";
 
@@ -96,6 +97,14 @@ export async function POST(req: NextRequest) {
         <p style="color:#888;font-size:13px;">This link expires in 7 days. If you didn't expect this invitation, you can safely ignore this email.</p>
       </div>
     `,
+  }).catch(console.error);
+
+  logAudit({
+    action: "INVITATION_CREATED",
+    description: `Invited ${email} as ${role}`,
+    metadata: { invitationId: invitation.id, email, role },
+    userId,
+    workspaceId: workspace.id,
   }).catch(console.error);
 
   return NextResponse.json(invitation, { status: 201 });

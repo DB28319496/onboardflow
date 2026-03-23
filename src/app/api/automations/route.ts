@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace } from "@/lib/api-helpers";
+import { logAudit } from "@/lib/audit";
 import { z } from "zod";
 
 const createSchema = z.object({
@@ -69,6 +70,14 @@ export async function POST(req: NextRequest) {
       stage: { select: { id: true, name: true } },
     },
   });
+
+  logAudit({
+    action: "AUTOMATION_CREATED",
+    description: `Created automation rule "${parsed.data.name}"`,
+    metadata: { ruleId: rule.id, triggerType: parsed.data.triggerType },
+    userId,
+    workspaceId: workspace.id,
+  }).catch(console.error);
 
   return NextResponse.json(rule, { status: 201 });
 }

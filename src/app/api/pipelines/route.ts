@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace } from "@/lib/api-helpers";
+import { logAudit } from "@/lib/audit";
 import { createPipelineSchema } from "@/lib/validations";
 
 export async function GET() {
@@ -45,6 +46,14 @@ export async function POST(req: NextRequest) {
   const pipeline = await prisma.pipeline.create({
     data: { name, description, isDefault: isDefault ?? false, workspaceId: workspace.id },
   });
+
+  logAudit({
+    action: "PIPELINE_CREATED",
+    description: `Created pipeline "${name}"`,
+    metadata: { pipelineId: pipeline.id, isDefault: isDefault ?? false },
+    userId,
+    workspaceId: workspace.id,
+  }).catch(console.error);
 
   return NextResponse.json(pipeline, { status: 201 });
 }

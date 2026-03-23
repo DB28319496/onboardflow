@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace, requireRole } from "@/lib/api-helpers";
+import { logAudit } from "@/lib/audit";
 import { z } from "zod";
 
 type Params = { params: Promise<{ ruleId: string }> };
@@ -46,6 +47,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     },
   });
 
+  logAudit({
+    action: "AUTOMATION_UPDATED",
+    description: `Updated automation rule "${rule.name}"`,
+    metadata: { ruleId, changes: Object.keys(parsed.data) },
+    userId,
+    workspaceId: workspace.id,
+  }).catch(console.error);
+
   return NextResponse.json(rule);
 }
 
@@ -65,5 +74,14 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await prisma.automationRule.delete({ where: { id: ruleId } });
+
+  logAudit({
+    action: "AUTOMATION_DELETED",
+    description: `Deleted automation rule "${existing.name}"`,
+    metadata: { ruleId },
+    userId,
+    workspaceId: workspace.id,
+  }).catch(console.error);
+
   return NextResponse.json({ ok: true });
 }

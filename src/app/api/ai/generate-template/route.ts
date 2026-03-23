@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, requireWorkspace } from "@/lib/api-helpers";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
+import { sanitizeEmailHtml } from "@/lib/sanitize-html";
 
 const schema = z.object({
   description: z.string().min(1),
@@ -59,7 +60,10 @@ Requirements:
     const match = text.match(/\{[\s\S]*\}/);
     const result = JSON.parse(match?.[0] ?? text);
     if (!result.subject || !result.body) throw new Error("Missing fields");
-    return NextResponse.json({ subject: result.subject as string, body: result.body as string });
+    return NextResponse.json({
+      subject: String(result.subject),
+      body: sanitizeEmailHtml(String(result.body)),
+    });
   } catch {
     return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 });
   }

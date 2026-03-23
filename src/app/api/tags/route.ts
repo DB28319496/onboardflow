@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace } from "@/lib/api-helpers";
+import { logAudit } from "@/lib/audit";
 import { z } from "zod";
 
 const createSchema = z.object({
@@ -42,6 +43,14 @@ export async function POST(req: NextRequest) {
       workspaceId: workspace.id,
     },
   });
+
+  logAudit({
+    action: "TAG_CREATED",
+    description: `Created tag "${parsed.data.name}"`,
+    metadata: { tagId: tag.id, color: parsed.data.color ?? "#6366F1" },
+    userId,
+    workspaceId: workspace.id,
+  }).catch(console.error);
 
   return NextResponse.json(tag, { status: 201 });
 }

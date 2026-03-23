@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     });
     if (duplicate) {
       return NextResponse.json(
-        { error: `A client with this email already exists: ${duplicate.name}`, duplicate: true, existingClientId: duplicate.id },
+        { error: "A client with this email already exists in your workspace", duplicate: true, existingClientId: duplicate.id },
         { status: 409 }
       );
     }
