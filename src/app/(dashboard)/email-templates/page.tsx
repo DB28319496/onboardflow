@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Mail, Plus, Pencil, Trash2, Loader2, Send } from "lucide-react";
+import { Mail, Plus, Pencil, Trash2, Loader2, Send, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -26,6 +26,7 @@ export default function EmailTemplatesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TemplateRow | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [loadingStarter, setLoadingStarter] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -65,6 +66,21 @@ export default function EmailTemplatesPage() {
     }
   }
 
+  async function loadStarterContent() {
+    setLoadingStarter(true);
+    try {
+      const res = await fetch("/api/starter-content", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success(data.message);
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to load starter content");
+    } finally {
+      setLoadingStarter(false);
+    }
+  }
+
   function openCreate() {
     setEditing(null);
     setDialogOpen(true);
@@ -86,10 +102,16 @@ export default function EmailTemplatesPage() {
               Reusable email templates with dynamic merge fields.
             </p>
           </div>
-          <Button size="sm" onClick={openCreate}>
-            <Plus className="h-3.5 w-3.5 mr-1.5" />
-            New Template
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={loadStarterContent} disabled={loadingStarter}>
+              {loadingStarter ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Sparkles className="h-3.5 w-3.5 mr-1.5" />}
+              Load Starters
+            </Button>
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              New Template
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -107,12 +129,18 @@ export default function EmailTemplatesPage() {
             </div>
             <p className="font-medium">No email templates yet</p>
             <p className="text-sm text-muted-foreground mt-1 mb-4">
-              Create a template to start sending automated emails.
+              Create a template or load pre-built starters to get going fast.
             </p>
-            <Button size="sm" onClick={openCreate}>
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              New Template
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={loadStarterContent} disabled={loadingStarter}>
+                {loadingStarter ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Sparkles className="h-3.5 w-3.5 mr-1.5" />}
+                Load Starter Templates
+              </Button>
+              <Button size="sm" variant="outline" onClick={openCreate}>
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                Create from Scratch
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">

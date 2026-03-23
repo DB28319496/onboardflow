@@ -5,6 +5,7 @@ import { signupSchema } from "@/lib/validations";
 import { slugify } from "@/lib/utils";
 import { sendEmail } from "@/lib/email";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { STARTER_TEMPLATES, STARTER_AUTOMATIONS } from "@/lib/starter-content";
 import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
@@ -64,17 +65,36 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Auto-create weekly AI summary rule for new workspaces
-      await tx.automationRule.create({
-        data: {
-          name: "Weekly AI Summary",
-          triggerType: "WEEKLY_SUMMARY",
-          triggerConfig: JSON.stringify({}),
-          actionType: "AI_SUMMARY",
-          actionConfig: JSON.stringify({}),
-          workspaceId: workspace.id,
-        },
-      });
+      // Seed starter email templates
+      const templateMap = new Map<string, string>();
+      for (const t of STARTER_TEMPLATES) {
+        const created = await tx.emailTemplate.create({
+          data: {
+            name: t.name,
+            type: t.type,
+            subject: t.subject,
+            body: t.body,
+            workspaceId: workspace.id,
+          },
+        });
+        templateMap.set(t.name, created.id);
+      }
+
+      // Seed starter automation rules (linked to templates)
+      for (const a of STARTER_AUTOMATIONS) {
+        const templateId = a._templateName ? templateMap.get(a._templateName) ?? null : null;
+        await tx.automationRule.create({
+          data: {
+            name: a.name,
+            triggerType: a.triggerType,
+            triggerConfig: a.triggerConfig,
+            actionType: a.actionType,
+            actionConfig: a.actionConfig,
+            templateId,
+            workspaceId: workspace.id,
+          },
+        });
+      }
     });
 
     // Send verification email (non-blocking)

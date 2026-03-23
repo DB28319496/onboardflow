@@ -49,6 +49,23 @@ export function AutomationsClient({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [loadingStarter, setLoadingStarter] = useState(false);
+
+  async function loadStarterContent() {
+    setLoadingStarter(true);
+    try {
+      const res = await fetch("/api/starter-content", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success(data.message);
+      // Reload page to get fresh server data
+      window.location.reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to load starter content");
+    } finally {
+      setLoadingStarter(false);
+    }
+  }
 
   const handleCreated = useCallback((rule: AutomationRow) => {
     setRules((prev) => [...prev, rule]);
@@ -109,10 +126,16 @@ export function AutomationsClient({
                 : `${activeCount} of ${rules.length} automation${rules.length !== 1 ? "s" : ""} active`}
             </p>
           </div>
-          <Button size="sm" onClick={() => setDialogOpen(true)}>
-            <Plus className="h-3.5 w-3.5 mr-1.5" />
-            New Automation
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={loadStarterContent} disabled={loadingStarter}>
+              {loadingStarter ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Sparkles className="h-3.5 w-3.5 mr-1.5" />}
+              Load Starters
+            </Button>
+            <Button size="sm" onClick={() => setDialogOpen(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              New Automation
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -125,12 +148,18 @@ export function AutomationsClient({
             </div>
             <p className="font-medium">No automations yet</p>
             <p className="text-sm text-muted-foreground mt-1 mb-4">
-              Set up automated emails that fire when clients reach certain milestones.
+              Set up automated emails or load pre-built starters to get going fast.
             </p>
-            <Button size="sm" onClick={() => setDialogOpen(true)}>
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              New Automation
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={loadStarterContent} disabled={loadingStarter}>
+                {loadingStarter ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Sparkles className="h-3.5 w-3.5 mr-1.5" />}
+                Load Starter Automations
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setDialogOpen(true)}>
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                Create from Scratch
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="space-y-2 max-w-2xl">
